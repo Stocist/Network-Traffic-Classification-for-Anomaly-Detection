@@ -1,0 +1,18 @@
+# ML artifacts
+/runs/
+/models/**/*.joblib
+/models/**/figures/
+/models/**/metrics.json
+*.joblib
+*.png
+
+# Processed data (keep only the mapping)
+data_processed/**
+!data_processed/label_category_map.csv
+
+# Env cruft
+*.pyc
+__pycache__/
+.ipynb_checkpoints/
+.env
+.venv

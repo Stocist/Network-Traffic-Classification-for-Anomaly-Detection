@@ -1,0 +1,17 @@
+name: a2net
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pandas=2.2
+  - numpy=1.26
+  - scikit-learn=1.5
+  - imbalanced-learn=0.12
+  - xgboost=2.0
+  - matplotlib=3.8
+  - scipy=1.12
+  - joblib=1.4
+  - pip
+  - pip:
+      - pyyaml==6.*
