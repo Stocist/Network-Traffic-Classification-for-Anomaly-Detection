@@ -16,3 +16,7 @@ __pycache__/
 .ipynb_checkpoints/
 .env
 .venv
+# Raw data (never commit)
+data_raw/
+UNSW-NB15/
+ip_addresses_sample/
