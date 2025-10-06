@@ -1,0 +1,11 @@
+label,category
+Analysis,Attack
+Backdoor,Attack
+DoS,Attack
+Exploits,Attack
+Fuzzers,Attack
+Generic,Attack
+Normal,Normal
+Reconnaissance,Attack
+Shellcode,Attack
+Worms,Attack
