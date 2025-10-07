@@ -6,17 +6,22 @@
 *.joblib
 *.png
 
-# Processed data (keep only the mapping)
-data_processed/**
-!data_processed/label_category_map.csv
-
 # Env cruft
 *.pyc
 __pycache__/
 .ipynb_checkpoints/
 .env
 .venv
+# OS cruft
+.DS_Store
 # Raw data (never commit)
 data_raw/
 UNSW-NB15/
 ip_addresses_sample/
+
+# Assignment raw datasets
+Assignment Datasets/
+Rubric Specifications.md
+# Processed data (track structure, ignore large CSVs)
+data_processed/*.csv
+!data_processed/label_category_map*.csv
