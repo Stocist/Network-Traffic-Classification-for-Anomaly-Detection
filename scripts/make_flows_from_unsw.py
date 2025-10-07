@@ -55,11 +55,18 @@ def preprocess_unsw(df: pd.DataFrame) -> pd.DataFrame:
     # Coarse family: Normal vs Attack (anything not Normal)
     df["label_family"] = df["label"].apply(lambda x: "Normal" if str(x).lower() == "normal" else "Attack")
 
+    # Drop raw attack category to avoid any chance of target leakage via remainder passthrough
+    if "attack_cat" in df.columns:
+        df = df.drop(columns=["attack_cat"])  # we already derived label + label_family
+
     # Ensure expected categoricals exist
     for col in ("protocol_type", "service", "flag"):
         if col not in df.columns:
             raise ValueError(f"Expected categorical column '{col}' not found in data")
-        df[col] = df[col].astype("string").fillna("UNK")
+        s = df[col].astype("string")
+        s = s.fillna("UNK")
+        s = s.replace({"-": "UNK", "": "UNK"})  # normalise common placeholders
+        df[col] = s
 
     # Drop clearly non-predictive identifiers if present
     drop_cols = [
@@ -80,18 +87,22 @@ def preprocess_unsw(df: pd.DataFrame) -> pd.DataFrame:
 
 def write_outputs(df: pd.DataFrame, outdir: Path) -> Tuple[Path, Path]:
     outdir.mkdir(parents=True, exist_ok=True)
-    flows_path = outdir / "flows_clean.csv"
-    df.to_csv(flows_path, index=False)
 
-    # Build fine -> coarse label map
+    # Build fine -> coarse label map (needs the fine-grained label)
     map_df = (
         df[["label", "label_family"]]
         .drop_duplicates()
         .rename(columns={"label": "label", "label_family": "category"})
-        .sort_values(by=["label", "category"]) 
+        .sort_values(by=["label", "category"])
     )
     map_path = outdir / "label_category_map.csv"
     map_df.to_csv(map_path, index=False)
+
+    # Remove the fine label from training features to prevent leakage
+    df_features = df.drop(columns=["label"], errors="ignore")
+    flows_path = outdir / "flows_clean.csv"
+    df_features.to_csv(flows_path, index=False)
+
     return flows_path, map_path
 
 
@@ -107,6 +118,11 @@ def main():
         default=str(Path("data_processed")),
         help="Output directory for flows_clean.csv and label_category_map.csv",
     )
+    ap.add_argument(
+        "--drop-duplicates",
+        action="store_true",
+        help="Drop exact duplicate rows based on feature columns (excludes target columns)",
+    )
     args = ap.parse_args()
 
     unsw_dir = Path(args.unsw_dir)
@@ -117,6 +133,17 @@ def main():
     print(f"[info] Loaded {len(df_raw):,} rows from 2 files")
 
     df = preprocess_unsw(df_raw)
+
+    if args.drop_duplicates:
+        feature_cols = [
+            c for c in df.columns
+            if c not in ("label", "label_family")
+        ]
+        before = len(df)
+        df = df.drop_duplicates(subset=feature_cols)
+        dropped = before - len(df)
+        if dropped:
+            print(f"[info] Dropped {dropped:,} duplicate rows (feature-wise)")
 
     flows_path, map_path = write_outputs(df, outdir)
     print(f"[ok] Wrote: {flows_path}")
@@ -136,5 +163,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
