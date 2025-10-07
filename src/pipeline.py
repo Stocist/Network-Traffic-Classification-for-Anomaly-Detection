@@ -25,6 +25,16 @@ except Exception:  # pragma: no cover - optional dependency
     XGBClassifier = None
 
 
+def _make_onehot_encoder():
+    """Create OneHotEncoder compatible with sklearn >=1.2 (sparse_output) and older (sparse)."""
+    try:
+        # sklearn >= 1.2
+        return OneHotEncoder(handle_unknown="ignore", sparse_output=False)
+    except TypeError:
+        # sklearn < 1.2
+        return OneHotEncoder(handle_unknown="ignore", sparse=False)
+
+
 def build_preprocessor(numeric: List[str], categorical: List[str]) -> ColumnTransformer:
     num_pipe = SkPipeline(
         steps=[
@@ -33,11 +43,10 @@ def build_preprocessor(numeric: List[str], categorical: List[str]) -> ColumnTran
         ]
     )
 
-    # use sparse=False for broader sklearn version compatibility
     cat_pipe = SkPipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("onehot", OneHotEncoder(handle_unknown="ignore", sparse=False)),
+            ("onehot", _make_onehot_encoder()),
         ]
     )
 
