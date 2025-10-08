@@ -23,6 +23,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--target", default=None, help="Optional target column to drop if present")
     p.add_argument("--categorical-cols", nargs="*", default=None, help="Optional categorical column names")
     p.add_argument("--contamination", type=float, default=0.01, help="Expected anomaly fraction for thresholding")
+    p.add_argument("--n-estimators", type=int, default=300, help="Number of trees in IsolationForest")
+    p.add_argument("--max-train-rows", type=int, default=0,
+                   help="If >0, randomly sample at most this many rows from training data")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--outdir", default="runs")
     p.add_argument("--run-name", default=None)
@@ -31,6 +34,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--test-target", default=None, help="Target label in test data (1=anomaly, 0=normal)")
     p.add_argument("--scorer", choices=["pr", "roc"], default="pr", help="Evaluation metric for labeled test")
     p.add_argument("--fpr-target", type=float, default=0.05, help="Report recall at fixed FPR")
+    p.add_argument("--max-test-rows", type=int, default=0,
+                   help="If >0, randomly sample at most this many rows from labeled test data")
     return p.parse_args()
 
 
@@ -48,6 +53,8 @@ def main():
     df = load_csvs(args.data)
     if args.target and args.target in df.columns:
         df = df.drop(columns=[args.target])
+    if args.max_train_rows and len(df) > args.max_train_rows:
+        df = df.sample(args.max_train_rows, random_state=args.seed)
     spec = infer_feature_types(df.assign(_dummy=0), target="_dummy", categorical_cols=args.categorical_cols)
     pre = build_preprocessor(spec.numeric, spec.categorical)
 
@@ -56,7 +63,8 @@ def main():
 
     pipe = Pipeline(steps=[
         ("preprocess", pre),
-        ("clf", IsolationForest(random_state=args.seed, n_estimators=300, n_jobs=-1, contamination=args.contamination)),
+        ("clf", IsolationForest(random_state=args.seed, n_estimators=args.n_estimators, n_jobs=-1,
+                                contamination=args.contamination)),
     ])
 
     pipe.fit(df)
@@ -71,6 +79,8 @@ def main():
         test_df = load_csvs(args.test)
         if args.test_target not in test_df.columns:
             raise SystemExit(f"Test target '{args.test_target}' not found in test data")
+        if args.max_test_rows and len(test_df) > args.max_test_rows:
+            test_df = test_df.sample(args.max_test_rows, random_state=args.seed)
         X_test = test_df.drop(columns=[args.test_target])
         y_test = test_df[args.test_target]
 
