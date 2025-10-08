@@ -3,7 +3,7 @@
 /models/**/figures/
 /models/**/metrics.json
 *.joblib
-*.png
+# *.png
 
 # Env cruft
 *.pyc
@@ -20,7 +20,9 @@ ip_addresses_sample/
 
 # Assignment raw datasets
 Assignment Datasets/
-Rubric Specifications.md
+Muns/
 # Processed data (track structure, ignore large CSVs)
 data_processed/*.csv
 !data_processed/label_category_map*.csv
+
+runs_archive/

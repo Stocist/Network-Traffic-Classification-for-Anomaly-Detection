@@ -1,0 +1,117 @@
+{
+  "memory": null,
+  "steps": [
+    [
+      "preprocess",
+      "ColumnTransformer(transformers=[('num',\n                                 Pipeline(steps=[('imputer',\n                                                  SimpleImputer(strategy='median')),\n                                                 ('scaler', StandardScaler())]),\n                                 ['duration', 'src_bytes', 'dst_bytes', 'count',\n                                  'srv_count', 'serror_rate']),\n                                ('cat',\n                                 Pipeline(steps=[('imputer',\n                                                  SimpleImputer(strategy='most_frequent')),\n                                                 ('onehot',\n                                                  OneHotEncoder(handle_unknown='ignore',\n                                                                sparse_output=False))]),\n                                 ['protocol_type', 'service', 'flag'])])"
+    ],
+    [
+      "clf",
+      "LogisticRegression(max_iter=1000)"
+    ]
+  ],
+  "transform_input": null,
+  "verbose": false,
+  "preprocess": "ColumnTransformer(transformers=[('num',\n                                 Pipeline(steps=[('imputer',\n                                                  SimpleImputer(strategy='median')),\n                                                 ('scaler', StandardScaler())]),\n                                 ['duration', 'src_bytes', 'dst_bytes', 'count',\n                                  'srv_count', 'serror_rate']),\n                                ('cat',\n                                 Pipeline(steps=[('imputer',\n                                                  SimpleImputer(strategy='most_frequent')),\n                                                 ('onehot',\n                                                  OneHotEncoder(handle_unknown='ignore',\n                                                                sparse_output=False))]),\n                                 ['protocol_type', 'service', 'flag'])])",
+  "clf": "LogisticRegression(max_iter=1000)",
+  "preprocess__force_int_remainder_cols": "deprecated",
+  "preprocess__n_jobs": null,
+  "preprocess__remainder": "drop",
+  "preprocess__sparse_threshold": 0.3,
+  "preprocess__transformer_weights": null,
+  "preprocess__transformers": [
+    [
+      "num",
+      "Pipeline(steps=[('imputer', SimpleImputer(strategy='median')),\n                ('scaler', StandardScaler())])",
+      [
+        "duration",
+        "src_bytes",
+        "dst_bytes",
+        "count",
+        "srv_count",
+        "serror_rate"
+      ]
+    ],
+    [
+      "cat",
+      "Pipeline(steps=[('imputer', SimpleImputer(strategy='most_frequent')),\n                ('onehot',\n                 OneHotEncoder(handle_unknown='ignore', sparse_output=False))])",
+      [
+        "protocol_type",
+        "service",
+        "flag"
+      ]
+    ]
+  ],
+  "preprocess__verbose": false,
+  "preprocess__verbose_feature_names_out": true,
+  "preprocess__num": "Pipeline(steps=[('imputer', SimpleImputer(strategy='median')),\n                ('scaler', StandardScaler())])",
+  "preprocess__cat": "Pipeline(steps=[('imputer', SimpleImputer(strategy='most_frequent')),\n                ('onehot',\n                 OneHotEncoder(handle_unknown='ignore', sparse_output=False))])",
+  "preprocess__num__memory": null,
+  "preprocess__num__steps": [
+    [
+      "imputer",
+      "SimpleImputer(strategy='median')"
+    ],
+    [
+      "scaler",
+      "StandardScaler()"
+    ]
+  ],
+  "preprocess__num__transform_input": null,
+  "preprocess__num__verbose": false,
+  "preprocess__num__imputer": "SimpleImputer(strategy='median')",
+  "preprocess__num__scaler": "StandardScaler()",
+  "preprocess__num__imputer__add_indicator": false,
+  "preprocess__num__imputer__copy": true,
+  "preprocess__num__imputer__fill_value": null,
+  "preprocess__num__imputer__keep_empty_features": false,
+  "preprocess__num__imputer__missing_values": NaN,
+  "preprocess__num__imputer__strategy": "median",
+  "preprocess__num__scaler__copy": true,
+  "preprocess__num__scaler__with_mean": true,
+  "preprocess__num__scaler__with_std": true,
+  "preprocess__cat__memory": null,
+  "preprocess__cat__steps": [
+    [
+      "imputer",
+      "SimpleImputer(strategy='most_frequent')"
+    ],
+    [
+      "onehot",
+      "OneHotEncoder(handle_unknown='ignore', sparse_output=False)"
+    ]
+  ],
+  "preprocess__cat__transform_input": null,
+  "preprocess__cat__verbose": false,
+  "preprocess__cat__imputer": "SimpleImputer(strategy='most_frequent')",
+  "preprocess__cat__onehot": "OneHotEncoder(handle_unknown='ignore', sparse_output=False)",
+  "preprocess__cat__imputer__add_indicator": false,
+  "preprocess__cat__imputer__copy": true,
+  "preprocess__cat__imputer__fill_value": null,
+  "preprocess__cat__imputer__keep_empty_features": false,
+  "preprocess__cat__imputer__missing_values": NaN,
+  "preprocess__cat__imputer__strategy": "most_frequent",
+  "preprocess__cat__onehot__categories": "auto",
+  "preprocess__cat__onehot__drop": null,
+  "preprocess__cat__onehot__dtype": "<class 'numpy.float64'>",
+  "preprocess__cat__onehot__feature_name_combiner": "concat",
+  "preprocess__cat__onehot__handle_unknown": "ignore",
+  "preprocess__cat__onehot__max_categories": null,
+  "preprocess__cat__onehot__min_frequency": null,
+  "preprocess__cat__onehot__sparse_output": false,
+  "clf__C": 1.0,
+  "clf__class_weight": null,
+  "clf__dual": false,
+  "clf__fit_intercept": true,
+  "clf__intercept_scaling": 1,
+  "clf__l1_ratio": null,
+  "clf__max_iter": 1000,
+  "clf__multi_class": "deprecated",
+  "clf__n_jobs": null,
+  "clf__penalty": "l2",
+  "clf__random_state": null,
+  "clf__solver": "lbfgs",
+  "clf__tol": 0.0001,
+  "clf__verbose": 0,
+  "clf__warm_start": false
+}

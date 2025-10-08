@@ -4,6 +4,14 @@ A clean, reproducible ML pipeline for network traffic anomaly detection. It trai
 
 ---
 
+
+## Results (quick links)
+- Full results index: [docs/README.md](docs/README.md)
+- Final runs to open quickly:
+  - UNSW Binary LR: [runs/20251007_211611_unsw_lr_fixed](runs/20251007_211611_unsw_lr_fixed)
+  - CESNET IsolationForest: [runs/20251008_130459_cesnet_iforest_perm](runs/20251008_130459_cesnet_iforest_perm)
+  - CESNET Regression visuals (clipped): [runs/20251008_151600_cesnet_regression_plots_clipped](runs/20251008_151600_cesnet_regression_plots_clipped)
+
 ## Getting started
 
 ### Environment
@@ -55,54 +63,99 @@ label,category
 
 ## Quick commands
 
-### Supervised — Binary (label map, calibration, threshold selection, random search)
+### Data Preprocessing
+
+#### 1. Process UNSW-NB15 flows
+```bash
+python scripts/make_flows_from_unsw.py \
+  --train data_raw/unsw_nb15/Training\ and\ Testing\ Sets/UNSW_NB15_training-set.csv \
+  --test data_raw/unsw_nb15/Training\ and\ Testing\ Sets/UNSW_NB15_testing-set.csv \
+  --output data_processed \
+  --drop-duplicates
+```
+**Outputs:** `flows_clean.csv` (features only, no target), `label_category_map.csv`
+
+#### 2. Build CESNET time-series windows with regression residuals
+```bash
+./scripts/build_cesnet_residuals.py \
+  --agg-dir data_raw/cesnet/ip_addresses_sample/ip_addresses_sample/agg_10_minutes \
+  --ids data_raw/cesnet/ids_relationship.csv \
+  --times data_raw/cesnet/times/times_10_minutes.csv \
+  --calendar data_raw/cesnet/weekends_and_holidays.csv \
+  --outdir data_processed \
+  --max-files 500 \
+  --lag-windows 1 2 3 6 12 \
+  --roll-window 12 \
+  --contamination 0.03
+```
+**Outputs:** `cesnet_windows_train.csv`, `cesnet_windows_test.csv` (with `is_anom` pseudo-labels from 3σ residuals)
+
+---
+
+### Training & Evaluation
+
+#### UNSW-NB15: Supervised Binary Classification
 ```bash
 python -m src.train_supervised \
   --data data_processed/flows_clean.csv \
   --task binary --target label \
   --label-map data_processed/label_category_map.csv \
   --categorical-cols protocol_type service flag \
-  --model xgb --class-weight none --use-smote \
-  --search random --n-iter 40 --cv-folds 5 --seed 42 \
+  --model lr --class-weight balanced \
+  --search none --cv-folds 5 --seed 42 \
   --calibrate isotonic --threshold-mode max_f1 \
-  --outdir runs
+  --pos-label Attack \
+  --outdir runs --run-name unsw_lr_binary
 ```
+**Outputs:** `runs/<timestamp>_unsw_lr_binary/` → metrics, figures, pipeline.joblib
 
-### Supervised — Multiclass (class weights; no SMOTE)
+#### UNSW-NB15: Supervised Multiclass (Attack Families)
 ```bash
 python -m src.train_supervised \
   --data data_processed/flows_clean.csv \
   --task multiclass --target label_family \
   --categorical-cols protocol_type service flag \
   --model rf --class-weight balanced \
-  --search grid --cv-folds 5 --seed 42 --outdir runs
+  --search none --cv-folds 5 --seed 42 \
+  --outdir runs --run-name unsw_rf_multiclass
 ```
 
-### One‑class baseline
+#### CESNET: IsolationForest (One-Class Anomaly Detection)
 ```bash
 python -m src.train_oneclass \
-  --data data_processed/normal_only.csv \
-  --categorical-cols protocol_type service flag \
-  --contamination 0.02 --seed 42 --outdir runs \
-  --test data_processed/test.csv --test-target is_anom --scorer pr
+  --data data_processed/cesnet_windows_train.csv \
+  --categorical-cols id_institution \
+  --contamination 0.02 \
+  --n-estimators 200 \
+  --max-train-rows 100000 \
+  --seed 42 \
+  --outdir runs --run-name cesnet_iforest \
+  --test data_processed/cesnet_windows_test.csv \
+  --test-target is_anom \
+  --max-test-rows 200000 \
+  --scorer pr --fpr-target 0.01
 ```
+**Outputs:** PR-AUC, recall@FPR, score histograms, PR curve
 
-### Cross‑domain evaluation
+#### Cross-domain evaluation (Optional HD)
 ```bash
 python -m src.train_eval_crossdomain \
-  --train data_processed/a.csv --test data_processed/b.csv \
-  --task multiclass --target label_family \
+  --train data_processed/flows_clean.csv \
+  --test data_processed/kaggle_flows_clean.csv \
+  --task binary --target label \
   --categorical-cols protocol_type service flag \
-  --model xgb --cv-folds 5 --seed 42 --outdir runs
+  --model rf --outdir runs --run-name cross_unsw_kaggle
 ```
 
-### Clustering (optional)
+#### Clustering (Optional)
 ```bash
 python -m src.train_cluster \
   --data data_processed/flows_clean.csv \
   --categorical-cols protocol_type service flag \
   --method kmeans --k 3 4 5 --outdir runs
 ```
+
+---
 
 ### Inference
 ```bash
