@@ -4,6 +4,14 @@ A clean, reproducible ML pipeline for network traffic anomaly detection. It trai
 
 ---
 
+
+## Results (quick links)
+- Full results index: [docs/README.md](docs/README.md)
+- Final runs to open quickly:
+  - UNSW Binary LR: [runs/20251007_211611_unsw_lr_fixed](runs/20251007_211611_unsw_lr_fixed)
+  - CESNET IsolationForest: [runs/20251008_130459_cesnet_iforest_perm](runs/20251008_130459_cesnet_iforest_perm)
+  - CESNET Regression visuals (clipped): [runs/20251008_151600_cesnet_regression_plots_clipped](runs/20251008_151600_cesnet_regression_plots_clipped)
+
 ## Getting started
 
 ### Environment
