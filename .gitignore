@@ -25,3 +25,5 @@ cursor_continue_from_the_last_conversat.md
 # Processed data (track structure, ignore large CSVs)
 data_processed/*.csv
 !data_processed/label_category_map*.csv
+
+runs_archive/
