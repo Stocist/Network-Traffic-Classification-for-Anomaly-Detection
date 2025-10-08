@@ -29,3 +29,5 @@ df = pd.read_csv('data_processed/flows_clean.csv')
 X_train = pd.read_csv('data_processed/X_train_processed.csv')
 y_train = pd.read_csv('data_processed/y_train_processed.csv')
 ```
+
+> Note: X_train_processed.csv / X_test_processed.csv are legacy EDA splits and are **not used** by final models. Authoritative CESNET inputs are `cesnet_windows_{train,test}.csv`.

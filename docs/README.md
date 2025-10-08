@@ -29,3 +29,8 @@ Provenance (older):
 - [20251008_140820_cesnet_regression_plots_final](../runs/20251008_140820_cesnet_regression_plots_final)
 - [20251008_124545_cesnet_regression_plots_mb](../runs/20251008_124545_cesnet_regression_plots_mb)
 - [20251008_123844_cesnet_regression_plots](../runs/20251008_123844_cesnet_regression_plots)
+
+## Basic dataset — Binary LR baseline
+- Run: [runs/20251008_195241_basic_lr](../runs/20251008_195241_basic_lr)
+- Figures: [confusion_matrix.png](../runs/20251008_195241_basic_lr/figures/confusion_matrix.png), [pr_curve.png](../runs/20251008_195241_basic_lr/figures/pr_curve.png), [roc_curve.png](../runs/20251008_195241_basic_lr/figures/roc_curve.png)
+- Metrics: [metrics.json](../runs/20251008_195241_basic_lr/metrics.json)
