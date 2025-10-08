@@ -1,0 +1,21 @@
+{
+  "source_dataset": "data_processed/cesnet_windows_test.csv",
+  "rows": 869332,
+  "time_range": [
+    "2024-04-19T21:30:52",
+    "2024-07-14T21:50:52"
+  ],
+  "prevalence": 0.058196408276699814,
+  "selected_ips": {
+    "high_traffic": 11069,
+    "low_traffic": 1654964
+  },
+  "figures": [
+    "residual_hist_mb.png",
+    "residual_z_hist.png",
+    "actual_vs_pred_ip11069_mb.png",
+    "actual_vs_pred_ip1654964_mb.png",
+    "residual_scatter_mb.png"
+  ],
+  "note": "Plots clip negative predictions to 0 for interpretability; metrics unchanged."
+}
