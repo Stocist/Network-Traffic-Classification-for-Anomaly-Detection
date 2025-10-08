@@ -1,0 +1,52 @@
+{
+  "task": "binary",
+  "target": "label",
+  "classes": [
+    "Attack",
+    "Normal"
+  ],
+  "positive_label": "Attack",
+  "threshold": 0.651964078836065,
+  "threshold_info": {
+    "mode": "max_f1",
+    "best_f1": 0.964444636453968
+  },
+  "calibration": "none",
+  "model": "lr",
+  "use_smote": false,
+  "class_weight": null,
+  "cv_folds": 5,
+  "seed": 42,
+  "feature_numeric": [
+    "duration",
+    "src_bytes",
+    "dst_bytes",
+    "count",
+    "srv_count",
+    "serror_rate"
+  ],
+  "feature_categorical": [
+    "protocol_type",
+    "service",
+    "flag"
+  ],
+  "data_files": [
+    "data_processed/basic_flows_clean_binary.csv"
+  ],
+  "data_sha256": {
+    "data_processed/basic_flows_clean_binary.csv": "97ccb383874cd6a73845f6238332d5884a26d7a073c537ecd1e4412d535d8468"
+  },
+  "label_map": null,
+  "timestamp": "20251008_195241",
+  "versions": {
+    "python": "3.13.6",
+    "pandas": "2.3.3",
+    "numpy": "2.3.3",
+    "sklearn": "1.7.2",
+    "imblearn": "0.14.0",
+    "xgboost": "3.0.5",
+    "lightgbm": null,
+    "scipy": "1.16.2",
+    "matplotlib": "3.10.6"
+  }
+}
