@@ -3,7 +3,7 @@
 /models/**/figures/
 /models/**/metrics.json
 *.joblib
-*.png
+# *.png
 
 # Env cruft
 *.pyc
