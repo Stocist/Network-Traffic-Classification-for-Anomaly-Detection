@@ -81,7 +81,7 @@ def add_rolling_features(df: pd.DataFrame, window: int) -> pd.DataFrame:
 def build_feature_columns(lag_windows: list[int], roll_window: int) -> list[str]:
     base = [
         "hour", "dow", "is_weekend", "is_holiday",
-        "n_flows", "n_packets", "n_bytes",
+        "n_flows", "n_packets",
         "n_dest_asn", "n_dest_ports", "n_dest_ip",
         "tcp_udp_ratio_packets", "tcp_udp_ratio_bytes",
         "dir_ratio_packets", "dir_ratio_bytes",
@@ -122,7 +122,7 @@ def main():
     train_df = windows[windows["time"] <= cutoff].copy()
     test_df = windows[windows["time"] > cutoff].copy()
 
-    keep_cols = ["ip_id", "id_time", "time", "id_institution"] + feature_cols
+    keep_cols = ["ip_id", "id_time", "time", "id_institution", "n_bytes"] + feature_cols
     train_df = train_df[keep_cols]
     test_df = test_df[keep_cols]
 
@@ -130,12 +130,12 @@ def main():
     test_path = outdir / f"{args.out_prefix}_test.csv"
     train_df.to_csv(train_path, index=False)
 
-    X_train = train_df.drop(columns=["time", "ip_id", "id_time", "id_institution"])
+    X_train = train_df[feature_cols]
     y_train = train_df["n_bytes"]
     reg = GradientBoostingRegressor(random_state=42)
     reg.fit(X_train, y_train)
 
-    X_test = test_df.drop(columns=["time", "ip_id", "id_time", "id_institution"])
+    X_test = test_df[feature_cols]
     y_test = test_df["n_bytes"]
     yhat = reg.predict(X_test)
 
