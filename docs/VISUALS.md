@@ -26,10 +26,18 @@ Open: `notebooks/01_eda_flows.ipynb`
 
 ### 2.1 4Network – Logistic Regression baseline
 Run: `runs/20251008_195241_basic_lr/`
-- Confusion matrix: [confusion_matrix.png](../runs/20251008_195241_basic_lr/figures/confusion_matrix.png)
-- Precision–Recall curve: [pr_curve.png](../runs/20251008_195241_basic_lr/figures/pr_curve.png)
-- ROC curve: [roc_curve.png](../runs/20251008_195241_basic_lr/figures/roc_curve.png)
-- Threshold curves: [threshold_curves.png](../runs/20251008_195241_basic_lr/figures/threshold_curves.png)
+- Confusion matrix:
+  
+  ![basic_lr_confusion](../runs/20251008_195241_basic_lr/figures/confusion_matrix.png)
+- Precision–Recall curve:
+  
+  ![basic_lr_pr](../runs/20251008_195241_basic_lr/figures/pr_curve.png)
+- ROC curve:
+  
+  ![basic_lr_roc](../runs/20251008_195241_basic_lr/figures/roc_curve.png)
+- Threshold curves:
+  
+  ![basic_lr_thresholds](../runs/20251008_195241_basic_lr/figures/threshold_curves.png)
 - Metrics JSON: [metrics.json](../runs/20251008_195241_basic_lr/metrics.json)
 
 What it shows
@@ -39,10 +47,18 @@ What it shows
 
 ### 2.2 UNSW‑NB15 – Logistic Regression
 Run: `runs/20251007_211611_unsw_lr_fixed/`
-- Confusion matrix: [confusion_matrix.png](../runs/20251007_211611_unsw_lr_fixed/figures/confusion_matrix.png)
-- Precision–Recall curve: [pr_curve.png](../runs/20251007_211611_unsw_lr_fixed/figures/pr_curve.png)
-- ROC curve: [roc_curve.png](../runs/20251007_211611_unsw_lr_fixed/figures/roc_curve.png)
-- (Optional) Feature importance: [feature_importance.png](../runs/20251007_211611_unsw_lr_fixed/figures/feature_importance.png)
+- Confusion matrix:
+  
+  ![unsw_lr_confusion](../runs/20251007_211611_unsw_lr_fixed/figures/confusion_matrix.png)
+- Precision–Recall curve:
+  
+  ![unsw_lr_pr](../runs/20251007_211611_unsw_lr_fixed/figures/pr_curve.png)
+- ROC curve:
+  
+  ![unsw_lr_roc](../runs/20251007_211611_unsw_lr_fixed/figures/roc_curve.png)
+- (Optional) Feature importance:
+  
+  ![unsw_lr_featimp](../runs/20251007_211611_unsw_lr_fixed/figures/feature_importance.png)
 - Metrics JSON: [metrics.json](../runs/20251007_211611_unsw_lr_fixed/metrics.json)
 
 What it shows
@@ -50,8 +66,12 @@ What it shows
 
 ### 2.3 CESNET – IsolationForest (one‑class, evaluated on test)
 Run: `runs/20251008_130459_cesnet_iforest_perm/`
-- Precision–Recall curve: [pr_curve.png](../runs/20251008_130459_cesnet_iforest_perm/figures/pr_curve.png)
-- Score histogram: [score_hist.png](../runs/20251008_130459_cesnet_iforest_perm/figures/score_hist.png)
+- Precision–Recall curve:
+  
+  ![cesnet_if_pr](../runs/20251008_130459_cesnet_iforest_perm/figures/pr_curve.png)
+- Score histogram:
+  
+  ![cesnet_if_hist](../runs/20251008_130459_cesnet_iforest_perm/figures/score_hist.png)
 - Metrics JSON: [metrics.json](../runs/20251008_130459_cesnet_iforest_perm/metrics.json)
 
 What it shows
@@ -61,11 +81,21 @@ What it shows
 
 ## 3) CESNET regression residuals (time‑series visuals)
 Run: `runs/20251008_151600_cesnet_regression_plots_clipped/`
-- Residual histogram (clipped): [residual_hist_mb.png](../runs/20251008_151600_cesnet_regression_plots_clipped/figures/residual_hist_mb.png)
-- Per‑IP z‑scores (clipped): [residual_z_hist.png](../runs/20251008_151600_cesnet_regression_plots_clipped/figures/residual_z_hist.png)
-- Residual vs predicted (MB): [residual_scatter_mb.png](../runs/20251008_151600_cesnet_regression_plots_clipped/figures/residual_scatter_mb.png)
-- Time‑series (high‑traffic IP): [actual_vs_pred_ip11069_mb.png](../runs/20251008_151600_cesnet_regression_plots_clipped/figures/actual_vs_pred_ip11069_mb.png)
-- Time‑series (low‑traffic IP): [actual_vs_pred_ip1654964_mb.png](../runs/20251008_151600_cesnet_regression_plots_clipped/figures/actual_vs_pred_ip1654964_mb.png)
+- Residual histogram (clipped):
+  
+  ![cesnet_resid_hist](../runs/20251008_151600_cesnet_regression_plots_clipped/figures/residual_hist_mb.png)
+- Per‑IP z‑scores (clipped):
+  
+  ![cesnet_resid_z](../runs/20251008_151600_cesnet_regression_plots_clipped/figures/residual_z_hist.png)
+- Residual vs predicted (MB):
+  
+  ![cesnet_resid_scatter](../runs/20251008_151600_cesnet_regression_plots_clipped/figures/residual_scatter_mb.png)
+- Time‑series (high‑traffic IP):
+  
+  ![cesnet_ts_high](../runs/20251008_151600_cesnet_regression_plots_clipped/figures/actual_vs_pred_ip11069_mb.png)
+- Time‑series (low‑traffic IP):
+  
+  ![cesnet_ts_low](../runs/20251008_151600_cesnet_regression_plots_clipped/figures/actual_vs_pred_ip1654964_mb.png)
 
 What it shows
 - Residual hist & z‑scores: overall residual shape and tails (units MB)
