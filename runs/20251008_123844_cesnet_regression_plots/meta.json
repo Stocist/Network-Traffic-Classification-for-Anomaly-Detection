@@ -1,0 +1,14 @@
+{
+  "source_dataset": "data_processed/cesnet_windows_test.csv",
+  "rows": 869332,
+  "time_range": [
+    "2024-04-19T21:30:52",
+    "2024-07-14T21:50:52"
+  ],
+  "agg_anomaly_windows": 12384,
+  "figures": [
+    "/Users/channmuninthkhun/Documents/Year 2/COS-30049 Computing Technology Innovation Project/Network-Traffic-Classification-for-Anomaly-Detection/runs/20251008_123844_cesnet_regression_plots/figures/actual_vs_pred.png",
+    "/Users/channmuninthkhun/Documents/Year 2/COS-30049 Computing Technology Innovation Project/Network-Traffic-Classification-for-Anomaly-Detection/runs/20251008_123844_cesnet_regression_plots/figures/residual_hist.png",
+    "/Users/channmuninthkhun/Documents/Year 2/COS-30049 Computing Technology Innovation Project/Network-Traffic-Classification-for-Anomaly-Detection/runs/20251008_123844_cesnet_regression_plots/figures/residual_scatter.png"
+  ]
+}
