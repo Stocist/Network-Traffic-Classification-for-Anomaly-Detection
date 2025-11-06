@@ -26,3 +26,5 @@ data_processed/*.csv
 !data_processed/label_category_map*.csv
 
 runs_archive/
+!web/backend/artifacts/*.joblib
+!web/backend/artifacts/*.json
