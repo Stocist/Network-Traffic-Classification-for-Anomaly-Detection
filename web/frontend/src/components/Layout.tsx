@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react"
 import { NavLink, Outlet } from "react-router-dom"
 
-const navLinks = [
+type NavLinkItem = {
+  path: string
+  label: string
+  end?: boolean
+}
+
+const navLinks: NavLinkItem[] = [
+  { path: "/", label: "Home", end: true },
   { path: "/dashboard", label: "Dashboard" },
   { path: "/inference", label: "Anomaly Detection" },
   { path: "/time-series", label: "Time Series" },
@@ -25,6 +32,7 @@ export function Layout() {
               key={link.path}
               to={link.path}
               className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+              end={link.end}
             >
               {link.label}
             </NavLink>
@@ -48,13 +56,12 @@ export function Layout() {
           <div className="footer-column footer-status">
             <p className="footer-title">Current time (Melbourne)</p>
             <p className="footer-time">{melbourneTime}</p>
-            <p className="footer-note">Australian Eastern Daylight Time</p>
           </div>
           <div className="footer-column footer-nav-column">
             <p className="footer-title">Navigation</p>
             <div className="footer-nav-vertical">
               {navLinks.map((link) => (
-                <NavLink key={link.path} to={link.path} className="footer-nav-link">
+                <NavLink key={link.path} to={link.path} end={link.end} className="footer-nav-link">
                   {link.label}
                 </NavLink>
               ))}
