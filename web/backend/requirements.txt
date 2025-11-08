@@ -1,7 +1,10 @@
+# * FastAPI and server
 fastapi>=0.110,<1.0
-uvicorn[standard]>=0.29,<1.0
-pandas>=1.5,<3.0
-numpy>=1.24,<3.0
-scikit-learn>=1.2,<2.0
-joblib>=1.3,<2.0
+uvicorn>=0.29,<1.0
 python-multipart>=0.0.6,<0.1
+
+# * ML stack - pinned to match training artifact (scikit-learn 1.5.2)
+scikit-learn==1.5.2
+numpy==1.26.4
+pandas==2.2.2
+joblib==1.3.2

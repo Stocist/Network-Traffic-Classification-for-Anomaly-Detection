@@ -13,6 +13,11 @@ from .schemas import HealthResponse, PredictionResponse
 from .services.artifacts import ModelArtifacts
 from .services.prediction_service import PredictionService
 from .services.store import ResultStore
+from .services.history import HistoryStore
+from .services.config_service import ConfigService
+from .routers import predict as predict_router
+from .routers import metrics as metrics_router
+from .routers import config as config_router
 
 app = FastAPI(
   title="Network Traffic Anomaly Detection API",
@@ -39,11 +44,14 @@ app.add_middleware(
 artifacts = ModelArtifacts(settings.model_path, settings.meta_path)
 prediction_service = PredictionService(artifacts)
 result_store = ResultStore()
+history_store = HistoryStore(maxlen=1000)
+config_service = ConfigService()
 
 
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
-  return HealthResponse(status="ok")
+  model_loaded = artifacts is not None and artifacts.pipeline is not None
+  return HealthResponse(status="ok", model_loaded=model_loaded)
 
 
 @app.post("/api/predict", response_model=PredictionResponse)
@@ -74,3 +82,8 @@ async def download_csv(result_id: str) -> StreamingResponse:
   # Stream the CSV so large responses do not need to be held in memory by FastAPI.
   headers = {"Content-Disposition": f'attachment; filename="predictions_{result_id}.csv"'}
   return StreamingResponse(buffer, media_type="text/csv", headers=headers)
+
+# Mount Assignment-3 routers
+app.include_router(predict_router.router)
+app.include_router(metrics_router.router)
+app.include_router(config_router.router)
