@@ -84,14 +84,19 @@ export function DashboardPage() {
       </aside>
       <section className="dashboard-content">
         <header className="hero">
-          <h2>Operational dashboard</h2>
+          <h2>Batch Predictions Dashboard</h2>
           <p>
-            Upload a CSV to refresh the latest run. Metrics summarise the processed rows, anomaly counts, and normal
-            traffic predictions returned by the FastAPI service.
+            Upload a CSV in <strong>UNSW-NB15 format</strong> for batch processing. The system validates the schema and returns predictions with visualizations.
+          </p>
+          <p style={{fontSize: '0.9rem', color: '#666', marginTop: '0.5rem'}}>
+            <a href="/template.csv" download style={{color: '#1976d2', textDecoration: 'underline'}}>
+              Download template CSV
+            </a> with required headers (46 features).
           </p>
           <div className="hero-actions">
             <DatasetUploadButton
-              helperText="Upload a CSV to refresh these metrics."
+              buttonText="Upload UNSW-NB15 Dataset"
+              helperText="Maximum: 50,000 rows (larger files will be auto-sampled)."
               onFileSelected={handleUpload}
               disabled={isLoading}
             />

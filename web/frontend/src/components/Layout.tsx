@@ -11,6 +11,7 @@ const navLinks: NavLinkItem[] = [
   { path: "/", label: "Home", end: true },
   { path: "/dashboard", label: "Dashboard" },
   { path: "/inference", label: "Anomaly Detection" },
+  { path: "/json", label: "Real-Time Prediction" },
   { path: "/time-series", label: "Time Series" },
   { path: "/contact", label: "Contact Us" }
 ]

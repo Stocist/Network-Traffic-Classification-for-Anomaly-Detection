@@ -21,10 +21,16 @@ export type PredictResponse = {
   timestamp: string;
 };
 
+export type PredictionError = {
+  message: string;
+  status?: number;
+  hint?: string;
+};
+
 export function usePrediction() {
   const [result, setResult] = useState<PredictResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<PredictionError | null>(null);
   const inFlight = useRef(false);
 
   const predict = useCallback(async (payload: PredictRequest) => {
@@ -36,7 +42,13 @@ export function usePrediction() {
       const { data } = await http.post<PredictResponse>(`/predict`, payload);
       setResult(data);
     } catch (e: any) {
-      setError(e?.message || "Prediction failed");
+      // * Extract detailed error info from axios response
+      const status = e?.response?.status;
+      const serverError = e?.response?.data;
+      const hint = serverError?.hint || serverError?.detail || null;
+      const message = hint || e?.message || "Prediction failed";
+      
+      setError({ message, status, hint });
     } finally {
       setLoading(false);
       inFlight.current = false;
