@@ -59,13 +59,17 @@ export default function JsonDashboardPage() {
           </label>
         </div>
         <div className="history-list">
-          {items.slice(0, 10).map((i) => (
-            <div key={i.id} className="history-item">
-              <span>{new Date(i.timestamp).toLocaleTimeString()}</span>
-              <b style={{marginLeft: 8}}>{i.label}</b>
-              <span style={{marginLeft: 8}}>{(i.probability * 100).toFixed(1)}%</span>
-            </div>
-          ))}
+          {items.length === 0 ? (
+            <p style={{color: '#888', fontStyle: 'italic'}}>No predictions yet. Submit a flow to see history.</p>
+          ) : (
+            items.slice(0, 10).map((i) => (
+              <div key={i.id} className="history-item">
+                <span>{new Date(i.timestamp).toLocaleTimeString()}</span>
+                <b style={{marginLeft: 8}}>{i.label}</b>
+                <span style={{marginLeft: 8}}>{(i.probability * 100).toFixed(1)}%</span>
+              </div>
+            ))
+          )}
         </div>
       </section>
 

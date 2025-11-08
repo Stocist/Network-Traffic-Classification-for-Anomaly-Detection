@@ -23,7 +23,7 @@ type Props = {
 
 export function InputForm({ onSubmit, disabled }: Props) {
   const { register, handleSubmit, formState: { errors, isValid } } = useForm<PredictRequest>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as any,
     mode: "onChange",
     defaultValues: {
       src_ip: "192.168.1.10",

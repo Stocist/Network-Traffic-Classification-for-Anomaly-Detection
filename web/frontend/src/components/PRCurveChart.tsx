@@ -9,7 +9,7 @@ import {
   Legend,
   CategoryScale
 } from "chart.js"
-import { Line } from "react-chartjs-2"
+import { Chart } from "react-chartjs-2"
 import type { PredictionRow } from "../types/inference"
 import { findLabelColumn, inferPositiveLabel, normalizeLabel } from "../utils/labelUtils"
 
@@ -256,7 +256,7 @@ export function PRCurveChart({ predictions, columns, positiveLabelHint }: PRCurv
     maintainAspectRatio: false,
     animation: {
       duration: 1000,
-      easing: "easeOutQuart"
+      easing: "easeOutQuart" as const
     },
     scales: {
       x: {
@@ -341,7 +341,7 @@ export function PRCurveChart({ predictions, columns, positiveLabelHint }: PRCurv
         </div>
       </div>
       <div className="chart-shell chart-shell--tall pr-chart-shell">
-        <Line data={chartData} options={options} />
+        <Chart type="line" data={chartData as any} options={options as any} />
       </div>
     </div>
   )
