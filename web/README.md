@@ -2,6 +2,8 @@
 
 This folder contains the complete demo web stack for Network Traffic Classification, combining a Vite/React frontend with a FastAPI backend that serves trained model predictions.
 
+> **📋 For detailed implementation status, testing checklist, and team coordination, see [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md)**
+
 ## Quick Start
 
 ```bash

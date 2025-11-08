@@ -73,12 +73,12 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
       animation: {
         animateRotate: true,
         animateScale: true,
-        easing: "easeOutElastic",
+        easing: "easeOutQuart" as const,
         duration: 900
       },
       plugins: {
         legend: {
-          position: "right",
+          position: "right" as const,
           labels: {
             usePointStyle: true,
             padding: 18
@@ -167,11 +167,11 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
       responsive: true,
       animation: {
         duration: 800,
-        easing: "easeOutBack"
+        easing: "easeOutQuart" as const
       },
       plugins: {
         legend: {
-          position: "right",
+          position: "right" as const,
           labels: {
             boxWidth: 12,
             boxHeight: 12,
@@ -249,7 +249,7 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
       responsive: true,
       animation: {
         duration: 850,
-        easing: "easeOutQuint"
+        easing: "easeOutQuart" as const
       },
       plugins: {
         legend: { display: false },
@@ -315,13 +315,13 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
       responsive: true,
       indexAxis: "y" as const,
       interaction: {
-        mode: "nearest",
-        axis: "y",
+        mode: "nearest" as const,
+        axis: "y" as const,
         intersect: false
       },
       animation: {
         duration: 800,
-        easing: "easeOutCubic",
+        easing: "easeOutQuart" as const,
         delay: (ctx: any) => (ctx.dataIndex ?? 0) * 80
       },
       plugins: {

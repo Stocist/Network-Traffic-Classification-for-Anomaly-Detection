@@ -43,26 +43,69 @@ class AIModel:
 
   def explain_last(self, features: pd.DataFrame, top_k: int = 5) -> List[Tuple[str, float]]:
     """
-    Best-effort feature contributions. If the pipeline exposes coefficients aligned to
-    feature names, return absolute-weight ranking. Otherwise return an empty list.
+    Best-effort feature contributions:
+    - Pull transformed feature names from a ColumnTransformer step named "preprocess" if available.
+    - Locate an estimator step ("clf" or any step with coef_ / feature_importances_).
+    - Rank absolute weights and return top_k pairs.
+    Falls back to an empty list when unavailable.
     """
     try:
-      # Many sklearn transformers expose feature_names_in_ at the pipeline level;
-      # if unavailable we fall back to required feature ordering from metadata.
-      if hasattr(self.pipeline, "feature_names_in_"):
-        names = list(self.pipeline.feature_names_in_)
-      else:
-        names = list(self.artifacts.required_features)
+      names: List[str] | None = None
+      if hasattr(self.pipeline, "named_steps"):
+        pre = self.pipeline.named_steps.get("preprocess")
+        if pre is not None and hasattr(pre, "get_feature_names_out"):
+          try:
+            names = list(pre.get_feature_names_out())  # type: ignore[arg-type]
+          except Exception:
+            names = None
 
-      # Attempt to locate a final estimator with coef_. This is a heuristic.
-      clf = getattr(self.pipeline, "named_steps", {}).get("classifier")
-      coef = getattr(clf, "coef_", None)
-      if coef is None:
+      # Find an estimator with usable importances/coefficients
+      est = None
+      if hasattr(self.pipeline, "named_steps"):
+        # Prefer conventional name
+        est = self.pipeline.named_steps.get("clf") or self.pipeline.named_steps.get("classifier")
+        if est is None:
+          for _, step in self.pipeline.named_steps.items():
+            if hasattr(step, "coef_") or hasattr(step, "feature_importances_"):
+              est = step
+              break
+      if est is None:
         return []
-      weights = np.abs(np.squeeze(coef))
-      pairs = list(zip(names[: len(weights)], weights[: len(names)]))
+
+      # Unwrap calibrated models if present
+      base = None
+      for attr in ("base_estimator", "estimator"):
+        if hasattr(est, attr):
+          base = getattr(est, attr)
+          break
+      if base is None and hasattr(est, "calibrated_classifiers_"):
+        try:
+          base = est.calibrated_classifiers_[0].estimator
+        except Exception:
+          base = None
+      if base is not None:
+        est = base
+
+      vec: Optional[np.ndarray] = None
+      if hasattr(est, "coef_"):
+        coef = np.squeeze(getattr(est, "coef_"))
+        vec = np.abs(coef)
+      elif hasattr(est, "feature_importances_"):
+        fi = np.squeeze(getattr(est, "feature_importances_"))
+        vec = np.abs(fi)
+      if vec is None:
+        return []
+
+      # Feature names fallback
+      if names is None:
+        if hasattr(self.pipeline, "feature_names_in_"):
+          names = list(self.pipeline.feature_names_in_)
+        else:
+          names = list(self.artifacts.required_features)
+
+      n = min(len(names), int(vec.shape[0]))
+      pairs = list(zip(names[:n], vec[:n].tolist()))
       pairs.sort(key=lambda t: float(t[1]), reverse=True)
       return pairs[:top_k]
     except Exception:
       return []
-

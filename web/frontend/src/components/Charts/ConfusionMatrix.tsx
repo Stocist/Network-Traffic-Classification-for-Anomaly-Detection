@@ -1,8 +1,8 @@
-import { Chart as ChartJS, Tooltip, Legend, CategoryScale, LinearScale, ColorScale, PointElement } from "chart.js";
+import { Chart as ChartJS, Tooltip, Legend, CategoryScale, LinearScale, PointElement } from "chart.js";
 import { MatrixController, MatrixElement } from "chartjs-chart-matrix";
 import { Chart } from "react-chartjs-2";
 
-ChartJS.register(MatrixController, MatrixElement, Tooltip, Legend, CategoryScale, LinearScale, ColorScale, PointElement);
+ChartJS.register(MatrixController, MatrixElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement);
 
 type Props = {
   labels: string[];
