@@ -205,6 +205,9 @@ export function TimeSeriesPage() {
       number,
       { total: number; anomalies: number; sumScore: number; maxScore: number; scoreCount: number }
     >()
+    
+    // Filter to keep only February 2015 and later data
+    const februaryStart = new Date('2015-02-01').getTime()
 
     state.predictions.forEach((row) => {
       const raw = row.data[timestampKey]
@@ -212,6 +215,12 @@ export function TimeSeriesPage() {
       if (!date) {
         return
       }
+      
+      // Skip January data
+      if (date.getTime() < februaryStart) {
+        return
+      }
+      
       const minute = new Date(date)
       minute.setSeconds(0, 0)
       const key = minute.getTime()

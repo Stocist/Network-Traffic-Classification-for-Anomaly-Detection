@@ -26,16 +26,51 @@ ChartJS.register(
   RadialLinearScale
 )
 
+import type { FilterState } from '../hooks/useLinkedVisualization'
+
 type PredictionChartsProps = {
   charts: ChartsPayload | null
   predictions: PredictionRow[]
+  onFilterChange?: (filterType: keyof FilterState, value: any) => void
+  activeFilters?: FilterState
 }
 
 // Ranked candidate columns that commonly describe attack taxonomy across public datasets.
 const ATTACK_FIELDS = ["attack_type", "attack_cat", "category", "label", "label_family", "threat_type"]
 
-export function PredictionCharts({ charts, predictions }: PredictionChartsProps) {
+// * Normalize attack category names to consolidate variants
+const normalizeAttackCategory = (category: string): string => {
+  const catLower = category.toLowerCase().trim()
+  
+  const normalizationMap: Record<string, string> = {
+    'backdoors': 'Backdoor',
+    'backdoor': 'Backdoor',
+    'fuzzers': 'Fuzzers',
+    'fuzzer': 'Fuzzers',
+    'exploits': 'Exploits',
+    'exploit': 'Exploits',
+    'worms': 'Worms',
+    'worm': 'Worms',
+    'shellcode': 'Shellcode',
+    'shellcodes': 'Shellcode',
+    'reconnaissance': 'Reconnaissance',
+    'generic': 'Generic',
+    'dos': 'DoS',
+    'analysis': 'Analysis'
+  }
+  
+  return normalizationMap[catLower] || category
+}
+
+export function PredictionCharts({ charts, predictions, onFilterChange, activeFilters }: PredictionChartsProps) {
   const hasCharts = Boolean(charts)
+  
+  // * Handle chart click for filtering
+  const handleChartClick = useCallback((filterType: keyof FilterState, value: any) => {
+    if (onFilterChange) {
+      onFilterChange(filterType, value)
+    }
+  }, [onFilterChange])
 
   const handleHoverCursor = useCallback((_: any, elements: any[], chart: any) => {
     if (!chart?.canvas) {
@@ -94,21 +129,20 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
           }
         }
       },
-      onHover: handleHoverCursor
+      onHover: handleHoverCursor,
+      onClick: (event: any, elements: any[], chart: any) => {
+        if (elements.length > 0 && doughnutData) {
+          const index = elements[0].index
+          const prediction = doughnutData.labels[index]
+          handleChartClick('prediction', prediction)
+        }
+      }
     }),
-    [handleHoverCursor]
+    [handleHoverCursor, handleChartClick, doughnutData]
   )
 
   const attackDistribution = useMemo(() => {
-    // * First, try to use the attack_taxonomy from backend (ground truth labels)
-    if (charts?.attack_taxonomy && Object.keys(charts.attack_taxonomy).length > 0) {
-      const labels = Object.keys(charts.attack_taxonomy)
-      const values = Object.values(charts.attack_taxonomy)
-      const total = values.reduce((sum, val) => sum + val, 0)
-      return { field: "attack_cat", labels, values, total }
-    }
-
-    // * Fallback: extract from prediction data if attack_taxonomy not available
+    // * Always recompute from predictions to respect active filters
     if (!predictions || predictions.length === 0) {
       return null
     }
@@ -116,8 +150,8 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
     let chosenField: string | null = null
     let counts: Map<string, number> | null = null
 
+    // * Try to find attack taxonomy column from the data
     for (const field of ATTACK_FIELDS) {
-      // Prefer the first column with enough distinct values so the chart reflects meaningful variety.
       const tally = new Map<string, number>()
       predictions.forEach((row) => {
         const raw = row.data?.[field]
@@ -125,10 +159,14 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
           return
         }
         const value = String(raw).trim()
-        if (!value || value.toLowerCase() === "nan" || value === "-") {
+        const valueLower = value.toLowerCase()
+        // * Skip normal/benign/invalid values
+        if (!value || valueLower === "nan" || value === "-" || valueLower === "normal" || valueLower === "benign") {
           return
         }
-        tally.set(value, (tally.get(value) ?? 0) + 1)
+        // * Normalize the category name
+        const normalized = normalizeAttackCategory(value)
+        tally.set(normalized, (tally.get(normalized) ?? 0) + 1)
       })
       if (tally.size >= 2) {
         chosenField = field
@@ -151,7 +189,7 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
     const values = labels.map((label) => counts?.get(label) ?? 0)
     const total = values.reduce((sum, val) => sum + val, 0)
     return { field: chosenField, labels, values, total }
-  }, [charts, predictions])
+  }, [predictions])
 
   const attackPolarData = useMemo(() => {
     if (!attackDistribution) {
@@ -175,41 +213,56 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
   const attackPolarOptions = useMemo(
     () => ({
       responsive: true,
+      maintainAspectRatio: true,
       animation: {
         duration: 800,
         easing: "easeOutQuart" as const
       },
       plugins: {
         legend: {
-          position: "right" as const,
+          position: "bottom" as const,
           labels: {
-            boxWidth: 12,
-            boxHeight: 12,
+            boxWidth: 10,
+            boxHeight: 10,
             usePointStyle: true,
-            padding: 18
+            padding: 8,
+            font: {
+              size: 11
+            }
           }
         },
         tooltip: {
           callbacks: {
             label: (ctx: any) => {
               const total = attackDistribution?.total ?? 0
-              const value = ctx.parsed ?? 0
+              const value = ctx.parsed?.r ?? ctx.parsed ?? 0
               const pct = total ? ((value / total) * 100).toFixed(1) : "0.0"
-              return `${ctx.label}: ${value} (${pct}%)`
+              const label = ctx.label || ctx.chart.data.labels[ctx.dataIndex]
+              return `${label}: ${value} (${pct}%)`
             }
           }
         }
       },
       scales: {
         r: {
-          ticks: { color: "#4b5563" },
+          ticks: { 
+            color: "#4b5563",
+            font: { size: 10 }
+          },
           angleLines: { color: "rgba(75, 85, 99, 0.12)" },
           grid: { color: "rgba(148, 163, 184, 0.18)" }
         }
       },
-      onHover: handleHoverCursor
+      onHover: handleHoverCursor,
+      onClick: (event: any, elements: any[]) => {
+        if (elements.length > 0 && attackDistribution) {
+          const index = elements[0].index
+          const attackType = attackDistribution.labels[index]
+          handleChartClick('attackType', attackType)
+        }
+      }
     }),
-    [attackDistribution, handleHoverCursor]
+    [attackDistribution, handleHoverCursor, handleChartClick]
   )
 
   const scoreBandData = useMemo(() => {
@@ -257,6 +310,7 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
   const scoreBandOptions = useMemo(
     () => ({
       responsive: true,
+      maintainAspectRatio: true,
       animation: {
         duration: 850,
         easing: "easeOutQuart" as const
@@ -271,12 +325,19 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
       },
       scales: {
         x: {
-          ticks: { color: "#374151" },
+          ticks: { 
+            color: "#374151",
+            font: { size: 10 }
+          },
           grid: { color: "rgba(148, 163, 184, 0.2)" }
         },
         y: {
           beginAtZero: true,
-          ticks: { color: "#374151", precision: 0 },
+          ticks: { 
+            color: "#374151", 
+            precision: 0,
+            font: { size: 10 }
+          },
           grid: { display: false }
         }
       },
@@ -286,12 +347,32 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
   )
 
   const barData = useMemo(() => {
-    if (!charts || charts.top_destination_ports.length === 0) {
+    // * Always recompute from predictions to respect active filters
+    if (!predictions || predictions.length === 0) {
       return null
     }
-    // * Show the most targeted services/ports to help analysts understand attack vectors
-    const labels = charts.top_destination_ports.map((entry) => entry.port)
-    const data = charts.top_destination_ports.map((entry) => entry.count)
+    
+    // * Count services from filtered predictions
+    const serviceCounts = new Map<string, number>()
+    predictions.forEach(row => {
+      const service = row.data?.service
+      if (service && service !== '-' && service.toLowerCase() !== 'nan') {
+        serviceCounts.set(String(service), (serviceCounts.get(String(service)) ?? 0) + 1)
+      }
+    })
+    
+    if (serviceCounts.size === 0) {
+      return null
+    }
+    
+    // * Get top 10 services by count
+    const sortedServices = Array.from(serviceCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+    
+    const labels = sortedServices.map(([service]) => service)
+    const data = sortedServices.map(([, count]) => count)
+    
     const palette = [
       "#38bdf8",
       "#6366f1",
@@ -318,11 +399,12 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
         }
       ]
     }
-  }, [charts])
+  }, [predictions])
 
   const barOptions = useMemo(
     () => ({
       responsive: true,
+      maintainAspectRatio: true,
       indexAxis: "y" as const,
       interaction: {
         mode: "nearest" as const,
@@ -347,27 +429,34 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
           beginAtZero: true,
           ticks: {
             color: "#374151",
-            precision: 0
+            precision: 0,
+            font: { size: 10 }
           },
           grid: { color: "rgba(55, 65, 81, 0.08)" }
         },
         y: {
-          ticks: { color: "#111827" },
+          ticks: { 
+            color: "#111827",
+            font: { size: 10 }
+          },
           grid: { display: false }
         }
       },
-      onHover: handleHoverCursor
+      onHover: handleHoverCursor,
+      onClick: (event: any, elements: any[]) => {
+        if (elements.length > 0 && barData) {
+          const index = elements[0].index
+          const service = barData.labels[index]
+          handleChartClick('service', service)
+        }
+      }
     }),
-    [handleHoverCursor]
+    [handleHoverCursor, handleChartClick, barData]
   )
 
   if (!hasCharts) {
     return (
       <section className="card-grid chart-grid">
-        <article className="card chart-panel">
-          <h3>Prediction breakdown</h3>
-          <p>Upload a dataset to explore interactive breakdowns.</p>
-        </article>
         <article className="card chart-panel">
           <h3>Attack taxonomy mix</h3>
           <p>Attack category insights will appear once labelled data is present.</p>
@@ -377,25 +466,134 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
           <p>Score distribution requires a model that exposes probabilities.</p>
         </article>
         <article className="card chart-panel">
-          <h3>Top destination ports</h3>
-          <p>Port insights will populate when anomalies are detected.</p>
+          <h3>Top targeted services</h3>
+          <p>Service insights will populate when data is uploaded.</p>
+        </article>
+        <article className="card chart-panel">
+          <h3>Port × Attack Heatmap</h3>
+          <p>Heatmap requires dataset with port numbers.</p>
         </article>
       </section>
     )
   }
 
+  // * Recompute heatmap data from filtered predictions
+  const heatmapData = useMemo(() => {
+    if (!predictions || predictions.length === 0) {
+      return null
+    }
+    
+    // * Find port and attack columns
+    const portCandidates = ['dst_port', 'dsport', 'dport', 'destination_port']
+    const attackCandidates = ['attack_cat', 'attack_type', 'category']
+    
+    let portCol: string | null = null
+    let attackCol: string | null = null
+    
+    // Check if any port column exists
+    for (const col of portCandidates) {
+      if (predictions[0]?.data?.[col] !== undefined) {
+        portCol = col
+        break
+      }
+    }
+    
+    // Check if any attack column exists
+    for (const col of attackCandidates) {
+      if (predictions[0]?.data?.[col] !== undefined) {
+        attackCol = col
+        break
+      }
+    }
+    
+    if (!portCol || !attackCol) {
+      return null
+    }
+    
+    // * Build crosstab of attack types × ports
+    const crosstab = new Map<string, Map<number, number>>()
+    const allPorts = new Set<number>()
+    
+    predictions.forEach(row => {
+      const portVal = row.data?.[portCol]
+      const attackVal = row.data?.[attackCol]
+      
+      if (!portVal || !attackVal) return
+      
+      const port = Number(portVal)
+      const attack = String(attackVal).trim()
+      const attackLower = attack.toLowerCase()
+      
+      // Skip invalid values
+      if (isNaN(port) || port < 1 || port > 65535) return
+      if (!attack || attackLower === 'normal' || attackLower === 'nan' || attackLower === 'benign' || attack === '-') return
+      
+      // * Normalize attack category name
+      const normalizedAttack = normalizeAttackCategory(attack)
+      
+      allPorts.add(port)
+      
+      if (!crosstab.has(normalizedAttack)) {
+        crosstab.set(normalizedAttack, new Map())
+      }
+      const attackRow = crosstab.get(normalizedAttack)!
+      attackRow.set(port, (attackRow.get(port) ?? 0) + 1)
+    })
+    
+    if (crosstab.size === 0 || allPorts.size === 0) {
+      return null
+    }
+    
+    // * Get top 15 ports by total attacks
+    const portTotals = new Map<number, number>()
+    allPorts.forEach(port => {
+      let total = 0
+      crosstab.forEach(attackRow => {
+        total += attackRow.get(port) ?? 0
+      })
+      portTotals.set(port, total)
+    })
+    
+    const topPorts = Array.from(portTotals.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15)
+      .map(([port]) => port)
+    
+    if (topPorts.length === 0) {
+      return null
+    }
+    
+    // * Get attack types sorted by total activity
+    const attackTotals = new Map<string, number>()
+    crosstab.forEach((attackRow, attack) => {
+      let total = 0
+      topPorts.forEach(port => {
+        total += attackRow.get(port) ?? 0
+      })
+      attackTotals.set(attack, total)
+    })
+    
+    const sortedAttacks = Array.from(attackTotals.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([attack]) => attack)
+    
+    // * Build matrix
+    const matrix = sortedAttacks.map(attack => {
+      const attackRow = crosstab.get(attack)!
+      return topPorts.map(port => attackRow.get(port) ?? 0)
+    })
+    
+    return {
+      ports: topPorts,
+      attack_types: sortedAttacks,
+      matrix
+    }
+  }, [predictions])
+  
+  const hasHeatmap = heatmapData !== null
+
   return (
     <section className="card-grid chart-grid">
-      <article className="card chart-panel chart-panel--pie">
-        <h3>Prediction breakdown</h3>
-        {doughnutData ? (
-          <div className="chart-shell">
-            <Doughnut data={doughnutData} options={doughnutOptions} />
-          </div>
-        ) : (
-          <p>No prediction counts available.</p>
-        )}
-      </article>
       <article className="card chart-panel">
         <h3>Attack taxonomy mix</h3>
         {attackPolarData ? (
@@ -426,18 +624,28 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
           <p>No service or port information available.</p>
         )}
       </article>
+      <article className="card chart-panel">
+        <h3>Port × Attack Heatmap</h3>
+        {hasHeatmap ? (
+          <div className="chart-shell" style={{ overflow: 'visible', minHeight: '320px' }}>
+            <PortAttackHeatmap 
+              data={heatmapData} 
+              onCellClick={(port, attackType) => {
+                handleChartClick('service', port.toString())
+                handleChartClick('attackType', attackType)
+              }}
+            />
+          </div>
+        ) : (
+          <p>Heatmap requires dataset with port numbers.</p>
+        )}
+      </article>
     </section>
   )
 }
 
+// Remove the separate PortHeatmapSection component export
 export function PortHeatmapSection({ charts }: { charts: ChartsPayload | null }) {
-  if (!charts || !charts.port_attack_heatmap || !charts.port_attack_heatmap.ports || charts.port_attack_heatmap.ports.length === 0) {
-    return null
-  }
-
-  return (
-    <section className="card chart-panel chart-panel--wide">
-      <PortAttackHeatmap data={charts.port_attack_heatmap} />
-    </section>
-  )
+  // This component is now deprecated - heatmap is integrated into the main grid
+  return null
 }

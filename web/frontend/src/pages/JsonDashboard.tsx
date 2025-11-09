@@ -1,37 +1,22 @@
 import { useCallback, useMemo, useState } from "react";
 import { InputForm } from "../components/InputForm";
-import { PredictionGauge } from "../components/Charts/PredictionGauge";
-import { FeatureImportance } from "../components/Charts/FeatureImportance";
-import { ConfusionMatrix } from "../components/Charts/ConfusionMatrix";
+import { CurrentPredictionCard } from "../components/CurrentPredictionCard";
+import { StatisticsCard } from "../components/StatisticsCard";
+import { ConfidenceTrendChart } from "../components/ConfidenceTrendChart";
 import { Toast } from "../components/Toast";
-import { useHistory, usePrediction } from "../hooks/usePrediction";
+import { useHistory, usePrediction, type PredictRequest } from "../hooks/usePrediction";
+import { SidebarNav } from "../components/SidebarNav";
 
 export default function JsonDashboardPage() {
   const { result, loading, error, predict } = usePrediction();
   const { items, enabled, setEnabled } = useHistory(3000);
-  const [threshold, setThreshold] = useState(0.5);
-  const [labelFilter, setLabelFilter] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const [lastPayload, setLastPayload] = useState<PredictRequest | null>(null);
 
-  const matrix = useMemo(() => {
-    // Fake a 2x2 confusion-like grid from history counts (predicted only)
-    const counts: Record<string, number> = {};
-    items.forEach((i) => (counts[i.label] = (counts[i.label] || 0) + 1));
-    const labels = Object.keys(counts).length ? Object.keys(counts) : ["Normal", "Attack"];
-    const size = labels.length;
-    const mat = Array.from({ length: size }, () => Array(size).fill(0));
-    labels.forEach((l, idx) => { mat[idx][idx] = counts[l] || 0; });
-    return { labels, mat };
-  }, [items]);
-
-  const onSubmit = useCallback(async (payload: any) => {
-    const wasSuccessful = !error; // Track previous error state
+  const onSubmit = useCallback(async (payload: PredictRequest) => {
+    setLastPayload(payload);
     await predict(payload);
-    // * Show toast on error
-    if (error && !wasSuccessful) {
-      setShowToast(true);
-    }
-  }, [predict, error]);
+  }, [predict]);
   
   // * Auto-show toast when error appears
   useMemo(() => {
@@ -40,86 +25,155 @@ export default function JsonDashboardPage() {
     }
   }, [error]);
 
+  // * Convert result to include flow summary
+  const enhancedResult = useMemo(() => {
+    if (!result || !lastPayload) return null;
+    return {
+      ...result,
+      flow_summary: {
+        src_ip: lastPayload.src_ip,
+        dst_ip: lastPayload.dst_ip,
+        src_port: lastPayload.src_port,
+        dst_port: lastPayload.dst_port,
+        protocol: lastPayload.protocol,
+        pkt_bytes: lastPayload.pkt_bytes,
+      },
+    };
+  }, [result, lastPayload]);
+
+  // * Convert history items to format expected by charts
+  const historyItems = useMemo(() => {
+    return items.map(item => ({
+      id: item.id,
+      label: item.label,
+      probability: item.probability,
+      timestamp: new Date(item.timestamp).getTime(),
+    }));
+  }, [items]);
+
+  const handleExport = useCallback(() => {
+    if (items.length === 0) {
+      alert('No predictions to export');
+      return;
+    }
+
+    const csv = [
+      'timestamp,label,confidence,src_ip,dst_ip,src_port,dst_port,protocol',
+      ...items.map(item => {
+        const payload = item.payload || {};
+        return `${item.timestamp},${item.label},${(item.probability * 100).toFixed(2)}%,${payload.src_ip || ''},${payload.dst_ip || ''},${payload.src_port || ''},${payload.dst_port || ''},${payload.protocol || ''}`;
+      })
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `predictions_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [items]);
+
+  const handleClearAll = useCallback(() => {
+    if (confirm('Clear all prediction history? This cannot be undone.')) {
+      // * TODO: Implement clear all on backend
+      window.location.reload();
+    }
+  }, []);
+
   return (
-    <div className="json-dash">
-      <h2>Real-time Prediction</h2>
-      <p>Enter a single flow and get an immediate prediction with confidence and explainability.</p>
-      <InputForm onSubmit={onSubmit} disabled={loading} />
+    <div className="realtime-prediction">
+      <aside className="inference-sidebar">
+        <SidebarNav />
+      </aside>
 
-      {result && (
-        <section className="grid-2">
-          <article>
-            <h3>Prediction Confidence</h3>
-            <PredictionGauge probability={result.probability} threshold={threshold} />
-            <div className="controls">
-              <label>Threshold
-                <input type="range" min={0} max={1} step={0.01} value={threshold} onChange={(e)=> setThreshold(parseFloat(e.target.value))}/>
-              </label>
-            </div>
-          </article>
-          <article>
-            <h3>Top Feature Contributions</h3>
-            <div style={{minHeight: "300px"}}>
-              <FeatureImportance features={result.top_features} onClickFeature={(n)=> console.log(`Selected feature: ${n}`)} />
-            </div>
-          </article>
+      <section className="inference-content">
+        <header className="hero">
+          <p className="eyebrow">Real-Time Prediction</p>
+          <h2>Single Flow Analysis</h2>
+          <p>
+            Enter network flow parameters to get immediate anomaly detection with confidence scoring.
+            Perfect for investigating suspicious connections or testing the model with custom inputs.
+          </p>
+        </header>
+
+        <section className="input-section">
+          <InputForm onSubmit={onSubmit} disabled={loading} />
         </section>
-      )}
 
-      <section className="grid-2">
-        <article className="chart-card">
-          <div className="row">
+        <section className="results-grid">
+          <CurrentPredictionCard result={enhancedResult} />
+          <StatisticsCard 
+            items={historyItems} 
+            onExport={handleExport}
+            onClearAll={handleClearAll}
+          />
+        </section>
+
+        <ConfidenceTrendChart items={historyItems} maxItems={15} />
+
+        <section className="card history-table-card">
+          <div className="history-header">
             <h3>Recent Predictions</h3>
-            {labelFilter && (
-              <button 
-                className="secondary-btn" 
-                onClick={() => setLabelFilter(null)}
-                style={{marginLeft: "1rem", fontSize: "0.85rem"}}
-              >
-                Clear filter ({labelFilter})
-              </button>
-            )}
-            <label style={{marginLeft: "auto"}}>
-              Auto-refresh
-              <input type="checkbox" checked={enabled} onChange={(e)=> setEnabled(e.target.checked)} style={{marginLeft: 8}}/>
+            <label className="auto-refresh-toggle">
+              <input 
+                type="checkbox" 
+                checked={enabled} 
+                onChange={(e) => setEnabled(e.target.checked)}
+              />
+              <span>Auto-refresh (3s)</span>
             </label>
           </div>
-          <div className="history-list">
-            {items.length === 0 ? (
-              <p style={{color: '#888', fontStyle: 'italic'}}>No predictions yet. Submit a flow to see history.</p>
-            ) : (() => {
-              const filtered = labelFilter 
-                ? items.filter(i => i.label === labelFilter)
-                : items;
-              
-              if (filtered.length === 0) {
-                return <p style={{color: '#888', fontStyle: 'italic'}}>No predictions with label "{labelFilter}".</p>;
-              }
-              
-              return filtered.slice(0, 10).map((i) => (
-                <div key={i.id} className="history-item">
-                  <span>{new Date(i.timestamp).toLocaleTimeString()}</span>
-                  <b style={{marginLeft: 8, color: i.label === 'Attack' ? '#d32f2f' : '#2e7d32'}}>{i.label}</b>
-                  <span style={{marginLeft: 8}}>{(i.probability * 100).toFixed(1)}%</span>
-                </div>
-              ));
-            })()}
-          </div>
-        </article>
-
-        <article className="chart-card">
-          <h3>Predicted Distribution (Click to Filter)</h3>
-          <p style={{fontSize: '0.9rem', color: '#666', marginBottom: '1rem'}}>
-            Click on a label to filter the history list by that prediction type.
-          </p>
-          <ConfusionMatrix 
-            labels={matrix.labels} 
-            matrix={matrix.mat} 
-            onCellClick={(rowLabel, _colLabel) => {
-              setLabelFilter(rowLabel === labelFilter ? null : rowLabel);
-            }} 
-          />
-        </article>
+          
+          {items.length === 0 ? (
+            <p className="empty-state">No predictions yet. Submit a flow to see history.</p>
+          ) : (
+            <div className="history-table-wrapper">
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Result</th>
+                    <th>Confidence</th>
+                    <th>Source</th>
+                    <th>Destination</th>
+                    <th>Protocol</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.slice(0, 20).map((item) => {
+                    const isAttack = item.label === 'Attack' || item.label === '1';
+                    const payload = item.payload || {};
+                    return (
+                      <tr key={item.id}>
+                        <td className="time-cell">
+                          {new Date(item.timestamp).toLocaleTimeString()}
+                        </td>
+                        <td>
+                          <span className={`label-badge ${isAttack ? 'label-badge--attack' : 'label-badge--normal'}`}>
+                            {isAttack ? '🔴 Attack' : '🟢 Normal'}
+                          </span>
+                        </td>
+                        <td className="confidence-cell">
+                          {(item.probability * 100).toFixed(1)}%
+                        </td>
+                        <td className="ip-cell">
+                          {payload.src_ip}:{payload.src_port}
+                        </td>
+                        <td className="ip-cell">
+                          {payload.dst_ip}:{payload.dst_port}
+                        </td>
+                        <td className="protocol-cell">{payload.protocol}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </section>
       
       {/* * Toast notification for errors */}

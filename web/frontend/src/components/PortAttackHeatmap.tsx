@@ -16,9 +16,9 @@ export function PortAttackHeatmap({ data, onCellClick }: PortAttackHeatmapProps)
     }
 
     const svg = d3.select(svgRef.current)
-    const margin = { top: 100, right: 60, bottom: 80, left: 140 }
-    const cellWidth = 70
-    const cellHeight = 50
+    const margin = { top: 60, right: 30, bottom: 45, left: 100 }
+    const cellWidth = 38
+    const cellHeight = 32
     const width = data.ports.length * cellWidth
     const height = data.attack_types.length * cellHeight
 
@@ -130,7 +130,7 @@ export function PortAttackHeatmap({ data, onCellClick }: PortAttackHeatmapProps)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
             .attr("fill", value > maxValue / 2 ? "white" : "#1f2937")
-            .attr("font-size", "13px")
+            .attr("font-size", "10px")
             .attr("font-weight", "700")
             .attr("pointer-events", "none")
             .attr("opacity", 0)
@@ -146,9 +146,9 @@ export function PortAttackHeatmap({ data, onCellClick }: PortAttackHeatmapProps)
       const label = g
         .append("text")
         .attr("x", j * cellWidth + cellWidth / 2)
-        .attr("y", -15)
+        .attr("y", -10)
         .attr("text-anchor", "middle")
-        .attr("font-size", "14px")
+        .attr("font-size", "11px")
         .attr("font-weight", "700")
         .attr("fill", "#111827")
         .attr("opacity", 0)
@@ -159,9 +159,9 @@ export function PortAttackHeatmap({ data, onCellClick }: PortAttackHeatmapProps)
       // * Port label subtitle
       g.append("text")
         .attr("x", j * cellWidth + cellWidth / 2)
-        .attr("y", -2)
+        .attr("y", 0)
         .attr("text-anchor", "middle")
-        .attr("font-size", "10px")
+        .attr("font-size", "8px")
         .attr("font-weight", "500")
         .attr("fill", "#6b7280")
         .attr("opacity", 0)
@@ -176,11 +176,11 @@ export function PortAttackHeatmap({ data, onCellClick }: PortAttackHeatmapProps)
     data.attack_types.forEach((attackType, i) => {
       const label = g
         .append("text")
-        .attr("x", -12)
+        .attr("x", -8)
         .attr("y", i * cellHeight + cellHeight / 2)
         .attr("text-anchor", "end")
         .attr("dominant-baseline", "middle")
-        .attr("font-size", "14px")
+        .attr("font-size", "11px")
         .attr("font-weight", "700")
         .attr("fill", "#111827")
         .attr("opacity", 0)
@@ -193,9 +193,9 @@ export function PortAttackHeatmap({ data, onCellClick }: PortAttackHeatmapProps)
     svg
       .append("text")
       .attr("x", (width + margin.left + margin.right) / 2)
-      .attr("y", 35)
+      .attr("y", 20)
       .attr("text-anchor", "middle")
-      .attr("font-size", "18px")
+      .attr("font-size", "14px")
       .attr("font-weight", "800")
       .attr("fill", "#111827")
       .attr("opacity", 0)
@@ -208,9 +208,9 @@ export function PortAttackHeatmap({ data, onCellClick }: PortAttackHeatmapProps)
     svg
       .append("text")
       .attr("x", (width + margin.left + margin.right) / 2)
-      .attr("y", 58)
+      .attr("y", 38)
       .attr("text-anchor", "middle")
-      .attr("font-size", "13px")
+      .attr("font-size", "10px")
       .attr("font-weight", "500")
       .attr("fill", "#6b7280")
       .attr("opacity", 0)
@@ -221,10 +221,10 @@ export function PortAttackHeatmap({ data, onCellClick }: PortAttackHeatmapProps)
       .attr("opacity", 1)
 
     // * Add legend
-    const legendWidth = 200
-    const legendHeight = 15
+    const legendWidth = 140
+    const legendHeight = 10
     const legendX = width - legendWidth + margin.left
-    const legendY = height + margin.top + 35
+    const legendY = height + margin.top + 20
 
     const legendScale = d3.scaleLinear().domain([0, maxValue]).range([0, legendWidth])
 
@@ -274,7 +274,7 @@ export function PortAttackHeatmap({ data, onCellClick }: PortAttackHeatmapProps)
       .attr("transform", `translate(${legendX},${legendY + legendHeight})`)
       .call(legendAxis)
       .selectAll("text")
-      .attr("font-size", "11px")
+      .attr("font-size", "9px")
       .attr("fill", "#4b5563")
       .attr("opacity", 0)
       .transition()
@@ -284,11 +284,11 @@ export function PortAttackHeatmap({ data, onCellClick }: PortAttackHeatmapProps)
 
     svg
       .append("text")
-      .attr("x", legendX - 10)
+      .attr("x", legendX - 6)
       .attr("y", legendY + legendHeight / 2)
       .attr("text-anchor", "end")
       .attr("dominant-baseline", "middle")
-      .attr("font-size", "12px")
+      .attr("font-size", "10px")
       .attr("font-weight", "600")
       .attr("fill", "#374151")
       .attr("opacity", 0)

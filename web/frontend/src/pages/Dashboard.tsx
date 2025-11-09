@@ -1,8 +1,12 @@
 import { useCallback, useMemo } from "react"
+import { FaDownload } from "react-icons/fa"
 import { DatasetUploadButton } from "../components/DatasetUploadButton"
 import { SidebarNav } from "../components/SidebarNav"
 import { PRCurveChartD3 } from "../components/PRCurveChartD3"
+import { ErrorAlert } from "../components/ErrorAlert"
+import { LoadingOverlay } from "../components/LoadingOverlay"
 import { useInferenceResults } from "../context/InferenceResultsContext"
+import { exportToCSV } from "../utils/export"
 import { formatSamplingPercent } from "../utils/format"
 
 const FALLBACK_CARDS = [
@@ -55,6 +59,15 @@ export function DashboardPage() {
     },
     [submitDataset, clearError]
   )
+  
+  // * Export predictions to CSV
+  const handleExport = useCallback(() => {
+    if (state.predictions.length === 0) {
+      alert('No predictions to export')
+      return
+    }
+    exportToCSV(state.predictions, 'batch_predictions.csv')
+  }, [state.predictions])
 
   const metrics = useMemo(() => {
     if (!state.validation) {
@@ -79,6 +92,9 @@ export function DashboardPage() {
 
   return (
     <div className="dashboard">
+      {/* * Loading overlay */}
+      {isLoading && <LoadingOverlay message="Running batch predictions..." />}
+      
       <aside className="dashboard-sidebar">
         <SidebarNav />
       </aside>
@@ -100,8 +116,17 @@ export function DashboardPage() {
               onFileSelected={handleUpload}
               disabled={isLoading}
             />
-            {isLoading ? <p className="upload-status">Processing dataset...</p> : null}
-            {error ? <p className="upload-error">{error}</p> : null}
+            {state.predictions.length > 0 && (
+              <button 
+                className="btn-export" 
+                onClick={handleExport}
+                style={{ marginLeft: '1rem' }}
+                disabled={isLoading}
+              >
+                <FaDownload /> Export Predictions
+              </button>
+            )}
+            {error ? <ErrorAlert error={error} onRetry={() => clearError()} onDismiss={clearError} /> : null}
             {state.validation?.downsampled ? (
               <p className="upload-helper upload-helper--notice">
                 Processed {state.validation.row_count.toLocaleString()} rows ({samplingPercent ?? "80"}%) sampled from{" "}

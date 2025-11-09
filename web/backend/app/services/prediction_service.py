@@ -330,8 +330,23 @@ class PredictionService:
     if not timestamp_col:
       return []
 
-    timestamp_series = pd.to_datetime(df[timestamp_col], errors="coerce")
+    # Convert timestamps - handle both Unix timestamps and datetime strings
+    if df[timestamp_col].dtype == 'object':
+      timestamp_series = pd.to_datetime(df[timestamp_col], errors="coerce")
+    else:
+      # Unix timestamps - convert from seconds to datetime
+      timestamp_series = pd.to_datetime(df[timestamp_col], unit='s', errors="coerce")
+    
     mask_valid = timestamp_series.notna()
+    if not mask_valid.any():
+      return []
+
+    # * Filter out January data - keep only February 2015 and later
+    # The UNSW-NB15 dataset has data from Jan and Feb 2015
+    february_start = pd.Timestamp('2015-02-01')
+    mask_february = timestamp_series >= february_start
+    mask_valid = mask_valid & mask_february
+    
     if not mask_valid.any():
       return []
 
@@ -453,6 +468,57 @@ class PredictionService:
     # (UNSW-NB15 has ct_src_dport_ltm which is a count, not a port)
     return None
 
+  def _find_attack_taxonomy_column(self, df: pd.DataFrame) -> Optional[str]:
+    """
+    Find the best column containing attack taxonomy information.
+    Returns the column name or None if not found.
+    """
+    # * Try various common column names for attack taxonomy
+    candidates = ["attack_cat", "attack_type", "category", "label_detail", "subcategory"]
+    
+    for col in candidates:
+      if col in df.columns:
+        # Check if column has meaningful attack categories
+        sample = df[col].dropna().head(100)
+        if len(sample) > 0:
+          # Check for valid attack category values
+          unique_vals = sample.unique()
+          valid_count = 0
+          for val in unique_vals:
+            val_str = str(val).strip().lower()
+            if val_str and val_str not in ["normal", "nan", "none", "", "0", "-"]:
+              valid_count += 1
+          if valid_count >= 2:  # At least 2 different attack types
+            return col
+    return None
+
+  def _normalize_attack_category(self, category: str) -> str:
+    """
+    Normalize attack category names to consolidate variants.
+    E.g., "Backdoors" -> "Backdoor", "Fuzzers" -> "Fuzzer"
+    """
+    cat_lower = category.lower().strip()
+    
+    # * Normalize plural forms to singular
+    normalization_map = {
+      'backdoors': 'Backdoor',
+      'backdoor': 'Backdoor',
+      'fuzzers': 'Fuzzers',
+      'fuzzer': 'Fuzzers',
+      'exploits': 'Exploits',
+      'exploit': 'Exploits',
+      'worms': 'Worms',
+      'worm': 'Worms',
+      'shellcode': 'Shellcode',
+      'shellcodes': 'Shellcode',
+      'reconnaissance': 'Reconnaissance',
+      'generic': 'Generic',
+      'dos': 'DoS',
+      'analysis': 'Analysis'
+    }
+    
+    return normalization_map.get(cat_lower, category)
+  
   def _extract_attack_taxonomy(self, df: pd.DataFrame) -> Dict[str, int]:
     """
     Extract attack category distribution from ground truth labels in the uploaded dataset.
@@ -466,39 +532,39 @@ class PredictionService:
     Returns:
       Dictionary mapping attack category names to counts, or empty dict if no categories found
     """
-    # * Try various common column names for attack taxonomy
-    candidates = ["attack_cat", "attack_type", "category", "label_detail", "subcategory"]
+    attack_col = self._find_attack_taxonomy_column(df)
     
-    for col in candidates:
-      if col in df.columns:
-        # * Filter to rows predicted as attacks
-        positive_label = self.artifacts.positive_label or "Attack"
-        attack_df = df[df["prediction"] == positive_label]
-        
-        if not attack_df.empty:
-          # * Count occurrences of each attack category
-          category_counts = attack_df[col].value_counts().to_dict()
-          
-          # * Clean up the results - remove Normal, NaN, None, empty strings
-          cleaned_counts = {}
-          for category, count in category_counts.items():
-            # Convert to string for consistent comparison
-            cat_str = str(category).strip()
-            cat_lower = cat_str.lower()
-            
-            # * Skip invalid/normal categories
-            if (cat_str and 
-                cat_lower not in ["normal", "nan", "none", "", "0"] and
-                not pd.isna(category)):
-              cleaned_counts[cat_str] = int(count)
-          
-          # * Return if we found valid attack categories
-          if cleaned_counts:
-            return cleaned_counts
+    if not attack_col:
+      return {}
     
-    # * Fallback: If no attack_cat column, return empty dict
-    # The frontend will show "No attack taxonomy data available"
-    return {}
+    # * Filter to rows predicted as attacks
+    positive_label = self.artifacts.positive_label or "Attack"
+    attack_df = df[df["prediction"] == positive_label]
+    
+    if attack_df.empty:
+      return {}
+    
+    # * Count occurrences of each attack category
+    category_counts = attack_df[attack_col].value_counts().to_dict()
+    
+    # * Clean up the results and normalize category names
+    cleaned_counts = {}
+    for category, count in category_counts.items():
+      # Convert to string for consistent comparison
+      cat_str = str(category).strip()
+      cat_lower = cat_str.lower()
+      
+      # * Skip invalid/normal categories
+      if (cat_str and 
+          cat_lower not in ["normal", "nan", "none", "", "0", "-"] and
+          not pd.isna(category)):
+        # * Normalize the category name
+        normalized = self._normalize_attack_category(cat_str)
+        # * Accumulate counts for normalized categories
+        cleaned_counts[normalized] = cleaned_counts.get(normalized, 0) + int(count)
+    
+    # * Return if we found valid attack categories
+    return cleaned_counts if cleaned_counts else {}
 
   def _port_attack_heatmap(self, df: pd.DataFrame) -> Dict[str, Any]:
     """
@@ -518,12 +584,8 @@ class PredictionService:
         port_col = col
         break
     
-    # * Find attack taxonomy column
-    attack_col = None
-    for col in ["attack_cat", "attack_type", "category"]:
-      if col in df.columns:
-        attack_col = col
-        break
+    # * Use the same attack taxonomy column as the polar chart for consistency
+    attack_col = self._find_attack_taxonomy_column(df)
     
     if not port_col or not attack_col:
       return {}
@@ -542,6 +604,11 @@ class PredictionService:
     
     if attack_df.empty:
       return {}
+    
+    # * Normalize attack categories before creating crosstab
+    attack_df[attack_col] = attack_df[attack_col].apply(
+      lambda x: self._normalize_attack_category(str(x)) if pd.notna(x) else x
+    )
     
     # * Create crosstab of attack_type × port
     try:
@@ -562,9 +629,13 @@ class PredictionService:
     # * Filter crosstab to top ports only
     crosstab = crosstab[top_ports]
     
-    # * Remove attack types that are "Normal" or invalid
-    valid_attack_mask = ~crosstab.index.str.lower().isin(['normal', 'nan', 'none', ''])
-    crosstab = crosstab[valid_attack_mask]
+    # * Remove attack types that are "Normal" or invalid (same logic as taxonomy)
+    valid_attacks = []
+    for attack_type in crosstab.index:
+      attack_str = str(attack_type).strip().lower()
+      if attack_str and attack_str not in ['normal', 'nan', 'none', '', '0', '-']:
+        valid_attacks.append(attack_type)
+    crosstab = crosstab.loc[valid_attacks]
     
     if crosstab.empty:
       return {}
