@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
+import { ActiveFiltersSummary } from "../components/ActiveFiltersSummary"
 import { DatasetUploadButton } from "../components/DatasetUploadButton"
 import { PredictionCharts } from "../components/PredictionCharts"
 import { SidebarNav } from "../components/SidebarNav"
@@ -32,17 +33,27 @@ const EMPTY_TABLE: TableData = {
 }
 
 export function AnomalyDetectionPage() {
-  const { state, submitDataset, isLoading, error, clearError, getDownloadUrl } = useInferenceResults()
+  const {
+    state,
+    submitDataset,
+    isLoading,
+    error,
+    clearError,
+    getDownloadUrl,
+    filteredPredictions,
+    currentCharts,
+    hasActiveFilters
+  } = useInferenceResults()
   const [currentPage, setCurrentPage] = useState(1)
   const [sortMode, setSortMode] = useState<"original" | "attack-first" | "normal-first">("original")
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [state.resultId, sortMode])
+  }, [state.resultId, sortMode, filteredPredictions])
 
   // Derive the label that should be treated as anomalous when toggling sort modes.
   const positiveLabel = useMemo(() => {
-    const counts = state.charts?.label_breakdown.counts
+    const counts = currentCharts?.label_breakdown.counts
     if (!counts) {
       return "Attack"
     }
@@ -51,15 +62,15 @@ export function AnomalyDetectionPage() {
     }
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
     return sorted[0]?.[0] ?? "Attack"
-  }, [state.charts])
+  }, [currentCharts])
 
   const tableData = useMemo<TableData>(() => {
-    if (state.predictions.length === 0) {
+    if (filteredPredictions.length === 0) {
       return EMPTY_TABLE
     }
 
     // Re-sort client side so analysts can scan anomalies first without re-fetching data.
-    const sortedPredictions = [...state.predictions]
+    const sortedPredictions = [...filteredPredictions]
     if (sortMode === "attack-first" || sortMode === "normal-first") {
       sortedPredictions.sort((a, b) => {
         const aIsPositive = a.prediction === positiveLabel
@@ -76,7 +87,7 @@ export function AnomalyDetectionPage() {
       sortedPredictions.sort((a, b) => a.row_index - b.row_index)
     }
 
-    const hasScore = state.predictions.some((row) => row.score != null)
+    const hasScore = filteredPredictions.some((row) => row.score != null)
     const dataKeys = new Set<string>()
     sortedPredictions.forEach((row) => {
       Object.keys(row.data).forEach((key) => {
@@ -119,7 +130,7 @@ export function AnomalyDetectionPage() {
     })
 
     return { columns, rows, hasScore }
-  }, [state.predictions, sortMode, positiveLabel])
+  }, [filteredPredictions, sortMode, positiveLabel])
 
   const totalPages = Math.max(1, Math.ceil(tableData.rows.length / ROWS_PER_PAGE))
   const paginatedRows = useMemo(() => {
@@ -232,14 +243,17 @@ export function AnomalyDetectionPage() {
         </section>
 
         <div className="anomaly-visualization-stack">
-          <PredictionCharts charts={state.charts} predictions={state.predictions} />
+          <ActiveFiltersSummary className="filters-inline" />
+          <PredictionCharts />
         </div>
 
         <section className="table-card">
           <h3>Detection results</h3>
           <p>
             {hasResults
-              ? "Review predictions with client-side pagination."
+              ? hasActiveFilters
+                ? "Filters applied. Review narrowed predictions with client-side pagination."
+                : "Review predictions with client-side pagination."
               : "Upload a dataset to populate the table with model predictions."}
           </p>
           <div className="table-controls">

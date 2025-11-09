@@ -374,6 +374,94 @@ nav {
   flex-wrap: wrap;
 }
 
+.filters-inline {
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+}
+
+.active-filters__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.active-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  background: #ffffff;
+  color: #1f2937;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.active-filter-chip:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.active-filters__reset {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.active-filters__reset:hover {
+  text-decoration: underline;
+}
+
+.chart-zoom-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.chart-reset-btn {
+  border: 1px solid #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.chart-reset-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.chart-hint {
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
 .chart-control {
   display: inline-flex;
   align-items: center;

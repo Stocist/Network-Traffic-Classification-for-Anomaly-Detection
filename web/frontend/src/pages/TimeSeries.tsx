@@ -14,11 +14,13 @@ import {
 import type { ChartData, ChartOptions } from "chart.js"
 import { Line, getElementAtEvent } from "react-chartjs-2"
 import "chartjs-adapter-date-fns"
+import zoomPlugin from "chartjs-plugin-zoom"
+import { ActiveFiltersSummary } from "../components/ActiveFiltersSummary"
 import { DatasetUploadButton } from "../components/DatasetUploadButton"
 import { SidebarNav } from "../components/SidebarNav"
 import { useInferenceResults } from "../context/InferenceResultsContext"
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Tooltip, Legend, Filler)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, TimeScale, Tooltip, Legend, Filler, zoomPlugin)
 
 const TIMESTAMP_KEYS = ["timestamp", "time", "event_time", "datetime", "capture_time"]
 const DEST_PORT_KEYS = ["dst_port", "dport", "destination_port", "dest_port", "dstport"]
@@ -144,7 +146,19 @@ function formatTimestamp(timestamp: number | null | undefined): string {
 }
 
 export function TimeSeriesPage() {
-  const { state, submitDataset, isLoading, error, clearError } = useInferenceResults()
+  const {
+    state,
+    submitDataset,
+    isLoading,
+    error,
+    clearError,
+    filteredPredictions,
+    currentCharts,
+    activeFilters,
+    setTimeRangeFilter,
+    resetFilters,
+    hasActiveFilters
+  } = useInferenceResults()
   const [bucketMinutes, setBucketMinutes] = useState<number>(30)
   type SeriesKey = "normal" | "anomaly" | "ratio"
   const [seriesVisibility, setSeriesVisibility] = useState<Record<SeriesKey, boolean>>({
@@ -154,6 +168,7 @@ export function TimeSeriesPage() {
   })
   const [selectedBucketIndex, setSelectedBucketIndex] = useState<number | null>(null)
   const flowChartRef = useRef<ChartJS<"line", (number | null)[], Date> | null>(null)
+  const baseRangeRef = useRef<{ start: number; end: number } | null>(null)
 
   const availableKeys = useMemo(() => {
     const keys = new Set<string>()
@@ -169,7 +184,7 @@ export function TimeSeriesPage() {
   const protocolKey = useMemo(() => findKey(PROTOCOL_KEYS, availableKeys), [availableKeys])
 
   const positiveLabel = useMemo(() => {
-    const counts = state.charts?.label_breakdown.counts
+    const counts = currentCharts?.label_breakdown.counts
     if (!counts) {
       return "Attack"
     }
@@ -178,10 +193,10 @@ export function TimeSeriesPage() {
     }
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
     return sorted[0]?.[0] ?? "Attack"
-  }, [state.charts])
+  }, [currentCharts])
 
   const anomalies = useMemo(() => {
-    return state.predictions
+    return filteredPredictions
       .filter((row) => row.prediction === positiveLabel)
       .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
       .slice(0, 12)
@@ -194,7 +209,7 @@ export function TimeSeriesPage() {
         protocol: protocolKey ? String(row.data[protocolKey] ?? "") : "",
         rowIndex: row.row_index
       }))
-  }, [state.predictions, positiveLabel, portKey, serviceKey, protocolKey, timestampKey])
+  }, [filteredPredictions, positiveLabel, portKey, serviceKey, protocolKey, timestampKey])
 
   const minuteSeries = useMemo(() => {
     if (!timestampKey) {
@@ -206,7 +221,7 @@ export function TimeSeriesPage() {
       { total: number; anomalies: number; sumScore: number; maxScore: number; scoreCount: number }
     >()
 
-    state.predictions.forEach((row) => {
+    filteredPredictions.forEach((row) => {
       const raw = row.data[timestampKey]
       const date = coerceDate(raw)
       if (!date) {
@@ -246,7 +261,7 @@ export function TimeSeriesPage() {
         scoreSum: value.sumScore,
         scoreCount: value.scoreCount
       }))
-  }, [state.predictions, timestampKey, positiveLabel])
+  }, [filteredPredictions, timestampKey, positiveLabel])
 
   const bucketedSeries = useMemo(() => {
     if (minuteSeries.length === 0) {
@@ -313,8 +328,52 @@ export function TimeSeriesPage() {
   }, [minuteSeries, bucketMinutes])
 
   useEffect(() => {
+    if (bucketedSeries.length === 0) {
+      baseRangeRef.current = null
+      return
+    }
+    const first = bucketedSeries[0].timestamp
+    const last = bucketedSeries[bucketedSeries.length - 1].timestamp
+    baseRangeRef.current = { start: first, end: last }
+  }, [bucketedSeries])
+
+  useEffect(() => {
     setSelectedBucketIndex(null)
   }, [state.resultId, bucketMinutes, bucketedSeries.length])
+
+  const updateTimeRangeFromChart = useCallback(
+    (chart: ChartJS) => {
+      const scale = chart.scales?.x
+      if (!scale) {
+        return
+      }
+      const min = scale.min
+      const max = scale.max
+      if (typeof min !== "number" || typeof max !== "number") {
+        return
+      }
+      const baseline = baseRangeRef.current
+      if (baseline && Math.abs(baseline.start - min) < 1 && Math.abs(baseline.end - max) < 1) {
+        setTimeRangeFilter(null)
+      } else {
+        setTimeRangeFilter({ start: min, end: max })
+      }
+    },
+    [setTimeRangeFilter]
+  )
+
+  useEffect(() => {
+    if (!activeFilters.timeRange && flowChartRef.current) {
+      const chart = flowChartRef.current as unknown as { resetZoom?: () => void }
+      chart.resetZoom?.()
+    }
+  }, [activeFilters.timeRange])
+
+  const handleZoomReset = useCallback(() => {
+    const chart = flowChartRef.current as unknown as { resetZoom?: () => void }
+    chart?.resetZoom?.()
+    setTimeRangeFilter(null)
+  }, [setTimeRangeFilter])
 
   const flowChartData = useMemo<ChartData<"line"> | null>(() => {
     if (bucketedSeries.length === 0) {
@@ -375,8 +434,9 @@ export function TimeSeriesPage() {
     }
   }, [bucketedSeries, bucketMinutes, seriesVisibility])
 
-  const flowChartOptions = useMemo<ChartOptions<"line">>(
-    () => ({
+  const flowChartOptions = useMemo<ChartOptions<"line">>(() => {
+    const baseline = baseRangeRef.current
+    return {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
@@ -395,7 +455,39 @@ export function TimeSeriesPage() {
               return `${label}: ${context.parsed.y}`
             }
           }
-        }
+        },
+        zoom: {
+          limits: baseline
+            ? {
+                x: {
+                  min: baseline.start,
+                  max: baseline.end
+                }
+              }
+            : undefined,
+          pan: {
+            enabled: true,
+            mode: "x",
+            modifierKey: "shift"
+          },
+          zoom: {
+            drag: {
+              enabled: true,
+              borderColor: "#2563eb",
+              backgroundColor: "rgba(37, 99, 235, 0.12)"
+            },
+            wheel: {
+              enabled: true,
+              modifierKey: "ctrl"
+            },
+            pinch: {
+              enabled: true
+            },
+            mode: "x"
+          },
+          onZoomComplete: ({ chart }: { chart: ChartJS }) => updateTimeRangeFromChart(chart),
+          onPanComplete: ({ chart }: { chart: ChartJS }) => updateTimeRangeFromChart(chart)
+        } as any
       },
       scales: {
         x: {
@@ -424,9 +516,8 @@ export function TimeSeriesPage() {
           grid: { drawOnChartArea: false }
         }
       }
-    }),
-    [seriesVisibility]
-  )
+    }
+  }, [seriesVisibility, updateTimeRangeFromChart, bucketedSeries])
 
   const flowSummary = useMemo(() => {
     if (bucketedSeries.length === 0) {
@@ -660,6 +751,8 @@ export function TimeSeriesPage() {
           </article>
         </section>
 
+        <ActiveFiltersSummary className="filters-inline" />
+
         <section className="chart-strip chart-strip--stacked">
           <div className="chart-card chart-card--wide">
             <div className="chart-card__header">
@@ -695,6 +788,12 @@ export function TimeSeriesPage() {
                   >
                     Ratio overlay
                   </button>
+                </div>
+                <div className="chart-zoom-actions">
+                  <button type="button" className="chart-reset-btn" onClick={handleZoomReset}>
+                    Reset zoom
+                  </button>
+                  <span className="chart-hint">Drag to zoom • Shift + drag to pan • Ctrl + scroll to zoom</span>
                 </div>
               </div>
             </div>
@@ -769,9 +868,9 @@ export function TimeSeriesPage() {
           </div>
           <div className="chart-card">
             <h3>Top destination port</h3>
-            <p className="metric-value">{state.charts?.top_destination_ports[0]?.port ?? "No anomalies"}</p>
+            <p className="metric-value">{currentCharts?.top_destination_ports[0]?.port ?? "No anomalies"}</p>
             <p className="metric-note">
-              Count: {state.charts?.top_destination_ports[0]?.count?.toLocaleString() ?? 0}
+              Count: {currentCharts?.top_destination_ports[0]?.count?.toLocaleString() ?? 0}
             </p>
           </div>
           <div className="chart-card chart-card--compact">
