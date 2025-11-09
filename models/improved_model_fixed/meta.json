@@ -1,0 +1,86 @@
+{
+  "task": "binary",
+  "target": "label",
+  "classes": [
+    0,
+    1
+  ],
+  "positive_label": 1,
+  "feature_numeric": [
+    "src_port",
+    "dst_port",
+    "dur",
+    "sbytes",
+    "dbytes",
+    "sttl",
+    "dttl",
+    "sloss",
+    "dloss",
+    "sload",
+    "dload",
+    "spkts",
+    "dpkts",
+    "swin",
+    "dwin",
+    "stcpb",
+    "dtcpb",
+    "smean",
+    "dmean",
+    "trans_depth",
+    "response_body_len",
+    "sjit",
+    "djit",
+    "sinpkt",
+    "dinpkt",
+    "tcprtt",
+    "synack",
+    "ackdat",
+    "is_sm_ips_ports",
+    "ct_state_ttl",
+    "ct_flw_http_mthd",
+    "is_ftp_login",
+    "ct_srv_src",
+    "ct_srv_dst",
+    "ct_dst_ltm",
+    "ct_src_ltm",
+    "ct_src_dport_ltm",
+    "ct_dst_sport_ltm",
+    "ct_dst_src_ltm",
+    "is_attack",
+    "rate",
+    "hour",
+    "duration_from_times"
+  ],
+  "feature_categorical": [
+    "protocol_type",
+    "flag",
+    "service",
+    "day_part"
+  ],
+  "has_timestamp": true,
+  "data_info": {
+    "ground_truth_attacks": 174347,
+    "raw_samples": 256780,
+    "train_samples": 175341,
+    "test_samples": 82332,
+    "combined_samples": 309029,
+    "use_ratio": {
+      "raw": 0.2,
+      "train": 1.0,
+      "test": 1.0
+    }
+  },
+  "performance": {
+    "average_precision": 0.9961565534716992,
+    "roc_auc": 0.9936723130075166,
+    "best_f1": 0.9618831382347944,
+    "best_threshold": 0.3860872146720572
+  },
+  "timestamp": "20251109_170115",
+  "versions": {
+    "python": "3.13.6",
+    "pandas": "2.3.3",
+    "numpy": "2.3.3",
+    "sklearn": "1.7.2"
+  }
+}

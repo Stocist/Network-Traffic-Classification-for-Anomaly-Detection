@@ -30,3 +30,5 @@ runs_archive/
 !web/backend/artifacts/*.json
 UNSW-NB15/CSV Files/NUSW-NB15_GT.csv
 UNSW-NB15/CSV Files/UNSW-NB15_1.csv
+UNSW-NB15/CSV Files/UNSW-NB15_2.csv
+UNSW-NB15/CSV Files/UNSW-NB15_3.csv

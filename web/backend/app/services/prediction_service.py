@@ -88,8 +88,22 @@ class PredictionService:
       df = pd.read_csv(io.StringIO(decoded))
       
       # * Check if this is UNSW-NB15 raw format (no headers)
-      # The raw files have numeric first column, whereas proper CSVs have "id" or similar
-      if df.columns[0].isdigit() or (len(df.columns) == 49 and df.iloc[0, 0]):
+      # The raw files have IP addresses as first column, processed files have "dur" or similar
+      # Raw files will have IP address (contains dots and all parts are digits) in the header position
+      first_col = str(df.columns[0])
+      is_raw_unsw = False
+      
+      # Check if first column looks like an IP address
+      if '.' in first_col:
+        # Check if it's an IP (all parts between dots are digits)
+        parts = first_col.split('.')
+        if len(parts) == 4 and all(part.isdigit() for part in parts):
+          is_raw_unsw = True
+      elif first_col.isdigit():
+        # Pure digit in header position suggests raw file
+        is_raw_unsw = True
+      
+      if is_raw_unsw:
         # * This is a headerless UNSW-NB15 raw file - reload with proper headers
         unsw_headers = [
           "srcip", "sport", "dstip", "dsport", "proto", "state", "dur", "sbytes", "dbytes",
@@ -125,12 +139,93 @@ class PredictionService:
     # * Compute 'rate' if missing (raw UNSW-NB15 doesn't have it)
     if "rate" not in df.columns:
       if "sbytes" in df.columns and "dbytes" in df.columns and "dur" in df.columns:
+        # Convert to numeric first to handle mixed types
+        df["dur"] = pd.to_numeric(df["dur"], errors='coerce').fillna(0)
+        df["sbytes"] = pd.to_numeric(df["sbytes"], errors='coerce').fillna(0)
+        df["dbytes"] = pd.to_numeric(df["dbytes"], errors='coerce').fillna(0)
         # rate = total_bytes / duration (with epsilon to avoid division by zero)
         epsilon = 1e-9
         total_bytes = df["sbytes"] + df["dbytes"]
         df["rate"] = total_bytes / (df["dur"] + epsilon)
         # ! Cap extreme values to avoid infinity
         df["rate"] = df["rate"].clip(upper=1e10)
+    
+    # * Add engineered features expected by improved model
+    # Add is_attack column (will be populated by predictions)
+    if "is_attack" not in df.columns:
+      df["is_attack"] = 0  # Default to normal
+    
+    # Add hour feature from timestamp if available
+    if "hour" not in df.columns:
+      if "timestamp" in df.columns:
+        df["hour"] = (pd.to_numeric(df["timestamp"], errors='coerce').fillna(0) % 86400) // 3600
+      elif "Stime" in df.columns:
+        df["hour"] = (pd.to_numeric(df["Stime"], errors='coerce').fillna(0) % 86400) // 3600
+      else:
+        df["hour"] = 12  # Default to noon
+    
+    # Add day_part feature
+    if "day_part" not in df.columns:
+      # Convert hour to day_part
+      df["day_part"] = "afternoon"  # Default
+      if "hour" in df.columns:
+        # Map hours to day parts
+        hour_vals = pd.to_numeric(df["hour"], errors='coerce').fillna(12)
+        conditions = [
+          (hour_vals >= 0) & (hour_vals < 6),
+          (hour_vals >= 6) & (hour_vals < 12),
+          (hour_vals >= 12) & (hour_vals < 18),
+          (hour_vals >= 18) & (hour_vals <= 24)
+        ]
+        choices = ['night', 'morning', 'afternoon', 'evening']
+        df["day_part"] = np.select(conditions, choices, default='afternoon')
+    
+    # Add duration_from_times
+    if "duration_from_times" not in df.columns:
+      if "timestamp" in df.columns and "last_time" in df.columns:
+        df["duration_from_times"] = pd.to_numeric(df["last_time"], errors='coerce').fillna(0) - pd.to_numeric(df["timestamp"], errors='coerce').fillna(0)
+      elif "Stime" in df.columns and "Ltime" in df.columns:
+        df["duration_from_times"] = pd.to_numeric(df["Ltime"], errors='coerce').fillna(0) - pd.to_numeric(df["Stime"], errors='coerce').fillna(0)
+      elif "dur" in df.columns:
+        df["duration_from_times"] = pd.to_numeric(df["dur"], errors='coerce').fillna(0)
+      else:
+        df["duration_from_times"] = 0
+    
+    # * Add port columns if missing (testing/training sets don't have them)
+    # The model expects src_port and dst_port, but testing/training sets don't have any port info
+    if "src_port" not in df.columns:
+      if "sport" in df.columns:
+        df["src_port"] = pd.to_numeric(df["sport"], errors='coerce').fillna(0)
+      else:
+        # No port info in testing/training sets - use default based on service
+        df["src_port"] = 0  # Source port is usually random
+    
+    if "dst_port" not in df.columns:
+      if "dsport" in df.columns:
+        df["dst_port"] = pd.to_numeric(df["dsport"], errors='coerce').fillna(0)
+      else:
+        # Try to infer from service column
+        if "service" in df.columns:
+          service_ports = {
+            'http': 80, 'https': 443, 'dns': 53, 'ssh': 22,
+            'ftp': 21, 'ftp-data': 20, 'smtp': 25, 'pop3': 110, 
+            'imap': 143, 'telnet': 23, 'snmp': 161, 'dhcp': 67,
+            'radius': 1812, 'ssl': 443, '-': 0
+          }
+          # Map service to common port
+          df["dst_port"] = df["service"].apply(
+            lambda x: service_ports.get(str(x).lower().strip(), 0) if pd.notna(x) else 0
+          )
+        else:
+          df["dst_port"] = 0
+    
+    # * Add missing TCP-related columns that the improved model expects
+    if "tcprtt" not in df.columns:
+      df["tcprtt"] = 0.0
+    if "synack" not in df.columns:
+      df["synack"] = 0.0
+    if "ackdat" not in df.columns:
+      df["ackdat"] = 0.0
     
     return df
 
@@ -206,6 +301,8 @@ class PredictionService:
   def _build_charts(self, df: pd.DataFrame, scores: Optional[List[float]]) -> ChartsPayload:
     """Build derived aggregates that power the dashboard visualisations."""
     label_counts = Counter(df["prediction"])
+    # * Convert label keys to strings for Pydantic schema
+    label_counts_str = {str(k): v for k, v in label_counts.items()}
 
     # * Extract attack taxonomy from ground truth labels if available
     attack_taxonomy = self._extract_attack_taxonomy(df)
@@ -220,7 +317,7 @@ class PredictionService:
     service_counts = self._top_services(df)
 
     return ChartsPayload(
-      label_breakdown=LabelBreakdown(counts=dict(label_counts)),
+      label_breakdown=LabelBreakdown(counts=label_counts_str),
       attack_taxonomy=attack_taxonomy,
       port_attack_heatmap=port_heatmap,
       anomalies_over_time=timeline,
