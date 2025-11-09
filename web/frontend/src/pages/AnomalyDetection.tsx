@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { DatasetUploadButton } from "../components/DatasetUploadButton"
-import { PredictionCharts } from "../components/PredictionCharts"
+import { PredictionCharts, PortHeatmapSection } from "../components/PredictionCharts"
 import { SidebarNav } from "../components/SidebarNav"
 import { useInferenceResults } from "../context/InferenceResultsContext"
 import { formatSamplingPercent } from "../utils/format"
@@ -233,6 +233,7 @@ export function AnomalyDetectionPage() {
 
         <div className="anomaly-visualization-stack">
           <PredictionCharts charts={state.charts} predictions={state.predictions} />
+          <PortHeatmapSection charts={state.charts} />
         </div>
 
         <section className="table-card">

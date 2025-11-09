@@ -1723,3 +1723,367 @@ nav {
     gap: 1rem;
   }
 }
+
+/* ============================================= */
+/* * Enhanced D3 PR Curve Styles                */
+/* ============================================= */
+
+.pr-curve-d3-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1rem 0;
+}
+
+.pr-curve-main {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 450px;
+}
+
+.pr-curve-svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.pr-curve-empty {
+  padding: 3rem;
+  text-align: center;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 2px dashed #d1d5db;
+}
+
+.pr-controls-enhanced {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+}
+
+.pr-slider-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.threshold-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.threshold-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.threshold-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #22c55e 0%, #facc15 50%, #ef4444 100%);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.threshold-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid #2563eb;
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  transition: all 0.2s ease;
+}
+
+.threshold-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 12px rgba(37, 99, 235, 0.5);
+}
+
+.threshold-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.05);
+}
+
+.threshold-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid #2563eb;
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  transition: all 0.2s ease;
+}
+
+.threshold-slider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 12px rgba(37, 99, 235, 0.5);
+}
+
+.threshold-slider::-moz-range-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.05);
+}
+
+.threshold-hint {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-style: italic;
+  text-align: center;
+}
+
+.pr-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.metric-box {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+
+.metric-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.metric-box:hover::before {
+  opacity: 1;
+}
+
+.metric-box--precision::before {
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+}
+
+.metric-box--precision:hover {
+  border-color: #3b82f6;
+}
+
+.metric-box--recall::before {
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+}
+
+.metric-box--recall:hover {
+  border-color: #a78bfa;
+}
+
+.metric-box--f1::before {
+  background: linear-gradient(90deg, #ec4899, #f472b6);
+}
+
+.metric-box--f1:hover {
+  border-color: #f472b6;
+}
+
+.metric-box--flagged::before {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.metric-box--flagged:hover {
+  border-color: #fbbf24;
+}
+
+.metric-box--best::before {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.metric-box--best:hover {
+  border-color: #34d399;
+}
+
+.metric-box--optimal::before {
+  background: linear-gradient(90deg, #06b6d4, #22d3ee);
+}
+
+.metric-box--optimal:hover {
+  border-color: #22d3ee;
+}
+
+.metric-header {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.metric-desc {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  line-height: 1.3;
+}
+
+.hover-info-panel {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 2px solid #3b82f6;
+  border-radius: 10px;
+  padding: 1rem;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hover-info-header {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.hover-info-content {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  color: #1e3a8a;
+}
+
+.hover-info-content strong {
+  font-weight: 700;
+  color: #1e40af;
+}
+
+/* ============================================= */
+/* * Port × Attack Heatmap Styles               */
+/* ============================================= */
+
+.port-heatmap-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem 1rem;
+  overflow-x: auto;
+}
+
+.port-heatmap-svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.port-heatmap-tooltip {
+  pointer-events: none;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.heatmap-empty {
+  padding: 3rem 2rem;
+  text-align: center;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 2px dashed #d1d5db;
+  margin: 2rem 0;
+}
+
+.chart-panel--wide {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+/* * Responsive adjustments for heatmap */
+@media (max-width: 1024px) {
+  .port-heatmap-container {
+    padding: 1rem 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .port-heatmap-container {
+    overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* * Responsive adjustments for PR curve */
+@media (max-width: 768px) {
+  .pr-metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .metric-value {
+    font-size: 1.5rem;
+  }
+
+  .metric-box {
+    padding: 0.75rem;
+  }
+
+  .pr-controls-enhanced {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pr-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hover-info-content {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

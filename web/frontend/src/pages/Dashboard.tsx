@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react"
 import { DatasetUploadButton } from "../components/DatasetUploadButton"
 import { SidebarNav } from "../components/SidebarNav"
-import { PRCurveChart } from "../components/PRCurveChart"
+import { PRCurveChartD3 } from "../components/PRCurveChartD3"
 import { useInferenceResults } from "../context/InferenceResultsContext"
 import { formatSamplingPercent } from "../utils/format"
 
@@ -122,12 +122,13 @@ export function DashboardPage() {
         </section>
 
         <section className="chart-card chart-card--wide">
-          <h3>Precision-Recall Curve</h3>
+          <h3>Interactive Precision-Recall Curve</h3>
           <p>
-            Explore how precision and recall trade off as you adjust the score threshold. Move the slider to highlight
-            the active operating point and watch the curve animate.
+            Explore how precision and recall trade off as you adjust the score threshold. Click on the curve or drag 
+            the slider to set the threshold. Hover over any point to see detailed metrics. Watch the smooth animations 
+            as you interact with the visualization.
           </p>
-          <PRCurveChart
+          <PRCurveChartD3
             predictions={state.predictions}
             columns={state.columns}
             positiveLabelHint={positiveLabel}

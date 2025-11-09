@@ -13,6 +13,7 @@ import {
 import { Bar, Doughnut, PolarArea } from "react-chartjs-2"
 import "chartjs-adapter-date-fns"
 import type { ChartsPayload, PredictionRow } from "../types/inference"
+import { PortAttackHeatmap } from "./PortAttackHeatmap"
 
 ChartJS.register(
   ArcElement,
@@ -99,6 +100,15 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
   )
 
   const attackDistribution = useMemo(() => {
+    // * First, try to use the attack_taxonomy from backend (ground truth labels)
+    if (charts?.attack_taxonomy && Object.keys(charts.attack_taxonomy).length > 0) {
+      const labels = Object.keys(charts.attack_taxonomy)
+      const values = Object.values(charts.attack_taxonomy)
+      const total = values.reduce((sum, val) => sum + val, 0)
+      return { field: "attack_cat", labels, values, total }
+    }
+
+    // * Fallback: extract from prediction data if attack_taxonomy not available
     if (!predictions || predictions.length === 0) {
       return null
     }
@@ -141,7 +151,7 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
     const values = labels.map((label) => counts?.get(label) ?? 0)
     const total = values.reduce((sum, val) => sum + val, 0)
     return { field: chosenField, labels, values, total }
-  }, [predictions])
+  }, [charts, predictions])
 
   const attackPolarData = useMemo(() => {
     if (!attackDistribution) {
@@ -279,7 +289,7 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
     if (!charts || charts.top_destination_ports.length === 0) {
       return null
     }
-    // Show the busiest destination ports to help analysts pivot into firewall or routing rules.
+    // * Show the most targeted services/ports to help analysts understand attack vectors
     const labels = charts.top_destination_ports.map((entry) => entry.port)
     const data = charts.top_destination_ports.map((entry) => entry.count)
     const palette = [
@@ -298,7 +308,7 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
       labels,
       datasets: [
         {
-          label: "Anomalies",
+          label: "Attacks",
           data,
           backgroundColor: data.map((_, idx) => palette[idx % palette.length]),
           hoverBackgroundColor: data.map((_, idx) => `${palette[idx % palette.length]}cc`),
@@ -328,7 +338,7 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: (ctx: any) => `${ctx.parsed.x} anomalies`
+            label: (ctx: any) => `${ctx.parsed.x.toLocaleString()} attacks`
           }
         }
       },
@@ -407,15 +417,27 @@ export function PredictionCharts({ charts, predictions }: PredictionChartsProps)
         )}
       </article>
       <article className="card chart-panel">
-        <h3>Top destination ports</h3>
+        <h3>Top targeted services</h3>
         {barData ? (
           <div className="chart-shell">
             <Bar data={barData} options={barOptions} />
           </div>
         ) : (
-          <p>No destination port information.</p>
+          <p>No service or port information available.</p>
         )}
       </article>
+    </section>
+  )
+}
+
+export function PortHeatmapSection({ charts }: { charts: ChartsPayload | null }) {
+  if (!charts || !charts.port_attack_heatmap || !charts.port_attack_heatmap.ports || charts.port_attack_heatmap.ports.length === 0) {
+    return null
+  }
+
+  return (
+    <section className="card chart-panel chart-panel--wide">
+      <PortAttackHeatmap data={charts.port_attack_heatmap} />
     </section>
   )
 }

@@ -44,6 +44,8 @@ class PortCount(BaseModel):
 
 class ChartsPayload(BaseModel):
   label_breakdown: LabelBreakdown
+  attack_taxonomy: Dict[str, int] = Field(default_factory=dict)
+  port_attack_heatmap: Dict[str, Any] = Field(default_factory=dict)
   anomalies_over_time: List[TimelinePoint]
   top_destination_ports: List[PortCount]
 
