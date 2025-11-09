@@ -28,3 +28,5 @@ data_processed/*.csv
 runs_archive/
 !web/backend/artifacts/*.joblib
 !web/backend/artifacts/*.json
+UNSW-NB15/CSV Files/NUSW-NB15_GT.csv
+UNSW-NB15/CSV Files/UNSW-NB15_1.csv
